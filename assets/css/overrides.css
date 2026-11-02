@@ -1,0 +1,398 @@
+/* ==========================================================================
+   PDF Studio — theme & scenario overrides
+   Loaded after base.css. Keyed by body[data-theme] and body[data-scenario].
+   ========================================================================== */
+
+/* ============================ THEMES ==================================== */
+
+/* --- Editorial ---------------------------------------------------------- */
+body[data-theme="editorial"] .content > p:first-of-type::first-letter {
+  float: left;
+  font-family: var(--font-display);
+  font-size: 3.1em;
+  line-height: 0.82;
+  padding: 3pt 7pt 0 0;
+  color: var(--accent);
+  font-weight: 800;
+}
+body[data-theme="editorial"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 18pt;
+}
+body[data-theme="editorial"] .content > h2::after {
+  content: "";
+  display: block;
+  width: 22mm;
+  height: 2pt;
+  background: var(--accent);
+  margin-top: 6pt;
+}
+body[data-theme="editorial"] .content > h3 { font-style: italic; font-weight: 600; }
+body[data-theme="editorial"] .cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.05;
+  background: none;
+}
+
+/* --- Swiss grid --------------------------------------------------------- */
+body[data-theme="swiss"] .content > h2 {
+  text-transform: uppercase;
+  font-size: 15pt;
+  letter-spacing: -0.01em;
+  border-top: var(--rule-width) solid var(--ink);
+  padding-top: 6pt;
+}
+body[data-theme="swiss"] .content > h3 {
+  text-transform: uppercase;
+  font-size: 9.6pt;
+  letter-spacing: 0.1em;
+}
+body[data-theme="swiss"] .content thead th {
+  background: var(--ink);
+  color: var(--bg);
+}
+body[data-theme="swiss"] .cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.12;
+  background: none;
+}
+body[data-theme="swiss"] .cover__title { text-transform: uppercase; }
+
+/* --- Modern SaaS -------------------------------------------------------- */
+body[data-theme="modern-saas"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  padding-left: 12pt;
+  position: relative;
+}
+body[data-theme="modern-saas"] .content > h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.18em;
+  bottom: 0.1em;
+  width: 4px;
+  border-radius: 2px;
+  background: var(--accent);
+}
+body[data-theme="modern-saas"] .metric { border-top: 0; }
+body[data-theme="modern-saas"] .callout { background: var(--panel); border-left-width: 3px; }
+body[data-theme="modern-saas"] .cover__rule { background: var(--accent); width: 44mm; }
+
+/* --- Luxury ------------------------------------------------------------- */
+body[data-theme="luxury"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  text-align: center;
+  font-size: 19pt;
+  letter-spacing: 0.06em;
+}
+body[data-theme="luxury"] .content > h2::after {
+  content: "";
+  display: block;
+  width: 18mm;
+  height: 1.5pt;
+  background: var(--accent);
+  margin: 7pt auto 0;
+}
+body[data-theme="luxury"] .content > h3 { text-align: center; font-size: 12pt; letter-spacing: 0.08em; }
+body[data-theme="luxury"] .content p { text-align: justify; }
+body[data-theme="luxury"] .content thead th { background: var(--ink); color: var(--bg); font-weight: 500; letter-spacing: 0.06em; }
+body[data-theme="luxury"] .cover__title { letter-spacing: 0.01em; font-weight: 500; }
+
+/* --- Academic ----------------------------------------------------------- */
+body[data-theme="academic"] .content p { text-align: justify; hyphens: auto; }
+body[data-theme="academic"] .content > h2 { font-size: 13pt; border-top: 0; padding-top: 0; margin-top: 18pt; }
+body[data-theme="academic"] .content > h3 { font-size: 11pt; font-style: italic; }
+body[data-theme="academic"] .content thead th { background: var(--ink); color: var(--bg); }
+body[data-theme="academic"] .content table { font-size: 0.86em; }
+body[data-theme="academic"] .callout { background: #F7F7F7; }
+
+/* --- Brutalist ---------------------------------------------------------- */
+body[data-theme="brutalist"] .content > h2 {
+  text-transform: uppercase;
+  font-size: 17pt;
+  border-top: 0;
+  padding: 4pt 0 4pt 0;
+  background: var(--accent);
+  color: var(--ink);
+  display: inline-block;
+  padding: 3pt 8pt;
+  margin-top: 22pt;
+}
+body[data-theme="brutalist"] .content > h3 {
+  text-transform: uppercase;
+  font-size: 10pt;
+  letter-spacing: 0.06em;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 2pt;
+}
+body[data-theme="brutalist"] .content table,
+body[data-theme="brutalist"] .callout,
+body[data-theme="brutalist"] .metric,
+body[data-theme="brutalist"] .content pre {
+  border: 2px solid var(--ink);
+  border-radius: 0;
+}
+body[data-theme="brutalist"] .content thead th { background: var(--ink); color: var(--accent); }
+body[data-theme="brutalist"] .callout { border-left-width: 6px; }
+body[data-theme="brutalist"] .cover__title { text-transform: uppercase; font-size: 50pt; }
+body[data-theme="brutalist"] .cover__rule { height: 6pt; width: 40mm; }
+
+/* --- Minimal ------------------------------------------------------------ */
+body[data-theme="minimal"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 14pt;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+body[data-theme="minimal"] .content > h3 { font-size: 11pt; font-weight: 600; color: var(--ink); }
+body[data-theme="minimal"] .content thead th { background: transparent; color: var(--ink); border-bottom: 1.5px solid var(--ink); }
+body[data-theme="minimal"] .content tbody tr:nth-child(even) td { background: transparent; }
+body[data-theme="minimal"] .callout { background: transparent; border-left-width: 2px; }
+body[data-theme="minimal"] .metric { background: transparent; }
+
+/* --- Corporate ---------------------------------------------------------- */
+body[data-theme="corporate"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  padding-bottom: 5pt;
+  border-bottom: 2px solid var(--accent);
+}
+body[data-theme="corporate"] .content > h3 { color: var(--accent); }
+body[data-theme="corporate"] .content thead th { background: var(--ink); color: #fff; }
+
+/* --- Warm sage ---------------------------------------------------------- */
+body[data-theme="warm-sage"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 18pt;
+  font-weight: 600;
+}
+body[data-theme="warm-sage"] .content > h2::after {
+  content: "";
+  display: block;
+  width: 16mm;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent-2);
+  margin-top: 6pt;
+}
+body[data-theme="warm-sage"] .metric { border-top-color: var(--accent-2); }
+
+/* --- Midnight ----------------------------------------------------------- */
+body[data-theme="midnight"] .content thead th { background: var(--accent-2); color: #071018; }
+body[data-theme="midnight"] .content tbody tr:nth-child(even) td { background: var(--panel); }
+body[data-theme="midnight"] .content a { color: var(--accent); }
+body[data-theme="midnight"] .callout { background: var(--panel); }
+body[data-theme="midnight"] .content pre { background: #050812; }
+body[data-theme="midnight"] .cover::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  opacity: 0.35;
+  background: none;
+}
+
+/* --- Vibrant ------------------------------------------------------------ */
+body[data-theme="vibrant"] .content > h2 {
+  border-top: 0;
+  padding-top: 0;
+  font-size: 18pt;
+  text-transform: uppercase;
+  letter-spacing: -0.02em;
+}
+body[data-theme="vibrant"] .content > h2::before {
+  content: "";
+  display: inline-block;
+  width: 6mm;
+  height: 6mm;
+  border-radius: 2px;
+  background: var(--accent);
+  margin-right: 8pt;
+  vertical-align: 0.02em;
+}
+body[data-theme="vibrant"] .metric { border-top-color: var(--accent); }
+body[data-theme="vibrant"] .content thead th { background: var(--accent); }
+body[data-theme="vibrant"] .cover__title { text-transform: uppercase; }
+
+/* ============================ SCENARIOS ================================= */
+
+/* --- Marketing plan ----------------------------------------------------- */
+body[data-scenario="marketing-plan"] .content > h2 {
+  font-size: 17pt;
+}
+body[data-scenario="marketing-plan"] .content > h2 + p,
+body[data-scenario="marketing-plan"] .content > h2 + ul { font-size: 1.01em; }
+body[data-scenario="marketing-plan"] .content table thead th {
+  text-transform: uppercase;
+  font-size: 0.82em;
+  letter-spacing: 0.05em;
+}
+body[data-scenario="marketing-plan"] .metric__value { font-size: 1.9em; }
+body[data-scenario="marketing-plan"] .callout--key { background: var(--accent); color: var(--accent-ink); }
+body[data-scenario="marketing-plan"] .callout--key .callout__title { color: var(--accent-ink); opacity: 0.85; }
+
+/* --- Report ------------------------------------------------------------- */
+body[data-scenario="report"] .content > h2 { font-size: 17.5pt; }
+body[data-scenario="report"] .content blockquote { font-size: 1.12em; }
+
+/* --- Proposal ----------------------------------------------------------- */
+body[data-scenario="proposal"] .content > h2 {
+  font-size: 22pt;
+  margin-top: 30pt;
+  border-top: 0;
+  padding-top: 0;
+}
+body[data-scenario="proposal"] .content { max-width: 148mm; margin: 0 auto; }
+body[data-scenario="proposal"] .toc { max-width: 148mm; margin: 0 auto; }
+
+/* --- Invoice ------------------------------------------------------------ */
+body[data-scenario="invoice"] .content > h2 {
+  font-size: 11pt;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-top: 0;
+  padding-top: 12pt;
+  border-bottom: 0.75pt solid var(--ink);
+  padding-bottom: 3pt;
+}
+body[data-scenario="invoice"] .content table { font-size: 0.98em; }
+body[data-scenario="invoice"] .content table td:last-child,
+body[data-scenario="invoice"] .content table th:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+body[data-scenario="invoice"] .content tbody tr:last-child td { font-weight: 700; }
+body[data-scenario="invoice"] .metrics { justify-content: flex-end; }
+
+/* --- Whitepaper --------------------------------------------------------- */
+body[data-scenario="whitepaper"] .content > h2 { font-size: 14pt; }
+body[data-scenario="whitepaper"] .content > h2 + p { font-size: 1.04em; }
+
+/* --- Case study --------------------------------------------------------- */
+body[data-scenario="case-study"] .metric__value { font-size: 2.1em; }
+body[data-scenario="case-study"] .content blockquote {
+  font-size: 1.18em;
+  border-left: 0;
+  border-top: 3px solid var(--accent);
+  border-bottom: 0.75pt solid var(--rule);
+  padding: 10pt 0;
+  color: var(--ink);
+}
+
+/* --- Résumé ------------------------------------------------------------- */
+body[data-scenario="resume"] .content > h2 {
+  font-size: 10.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  border-top: 0;
+  padding-top: 0;
+  border-bottom: 1.5px solid var(--ink);
+  padding-bottom: 2pt;
+  margin-top: 16pt;
+}
+body[data-scenario="resume"] .content > h3 { font-size: 11pt; margin-top: 9pt; }
+body[data-scenario="resume"] .content { font-size: 10pt; }
+body[data-scenario="resume"] .content p { margin-bottom: 5pt; }
+body[data-scenario="resume"] .content ul { margin-bottom: 6pt; }
+
+/* --- One-pager ---------------------------------------------------------- */
+body[data-scenario="one-pager"] .content { column-count: 2; column-gap: 9mm; }
+body[data-scenario="one-pager"] .content > h1,
+body[data-scenario="one-pager"] .content > h2 { column-span: all; }
+body[data-scenario="one-pager"] .content > h2 {
+  font-size: 12.5pt;
+  margin-top: 14pt;
+  border-top: 2px solid var(--ink);
+  padding-top: 4pt;
+}
+
+/* --- Academic ----------------------------------------------------------- */
+body[data-scenario="academic"] .content > h2 {
+  font-size: 12.5pt;
+  margin-top: 18pt;
+  border-top: 0;
+  padding-top: 0;
+}
+body[data-scenario="academic"] .content > h2::before {
+  content: counter(section) ". ";
+  color: var(--ink);
+}
+body[data-scenario="academic"] .content > h3 { font-size: 10.8pt; font-style: italic; }
+body[data-scenario="academic"] .content .abstract { font-size: 0.95em; }
+
+/* --- Brochure ----------------------------------------------------------- */
+body[data-scenario="brochure"] .content > h2 {
+  font-size: 22pt;
+  text-transform: uppercase;
+  border-top: 0;
+  padding-top: 0;
+  letter-spacing: -0.02em;
+}
+
+/* --- Certificate -------------------------------------------------------- */
+body[data-scenario="certificate"] .content {
+  border: 3px solid var(--accent);
+  outline: 0.75pt solid var(--accent);
+  outline-offset: 4mm;
+  padding: 16mm 20mm;
+  text-align: center;
+  min-height: var(--inner-h, 168mm);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+body[data-scenario="certificate"] .content > * { max-width: 200mm; }
+body[data-scenario="certificate"] .content > h1 {
+  border: 0;
+  font-size: 34pt;
+  margin-bottom: 6mm;
+}
+body[data-scenario="certificate"] .content > h2 {
+  border: 0;
+  padding: 0;
+  font-size: 16pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+body[data-scenario="certificate"] .content p { font-size: 12pt; }
+body[data-scenario="certificate"] .content hr { width: 40mm; margin-left: auto; margin-right: auto; }
+
+/* --- Newsletter --------------------------------------------------------- */
+body[data-scenario="newsletter"] .content { column-count: 2; column-gap: 9mm; }
+body[data-scenario="newsletter"] .content > h1 { column-span: all; }
+body[data-scenario="newsletter"] .content > h2 {
+  font-size: 12.5pt;
+  border-top: 2px solid var(--ink);
+  padding-top: 4pt;
+}
+body[data-scenario="newsletter"] .figure { break-inside: avoid; }
+
+/* --- Portfolio ---------------------------------------------------------- */
+body[data-scenario="portfolio"] .figure img { border-radius: 0; }
+body[data-scenario="portfolio"] .figure { margin: 0 0 10pt; }
+
+/* --- Pitch deck --------------------------------------------------------- */
+body[data-scenario="pitch-deck"] .content > h2 {
+  break-before: page;
+  font-size: 30pt;
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+}
+body[data-scenario="pitch-deck"] .content > h2:first-of-type { break-before: auto; }
+body[data-scenario="pitch-deck"] .content > h3 { font-size: 15pt; }
+body[data-scenario="pitch-deck"] .content p { font-size: 12pt; line-height: 1.55; }
+body[data-scenario="pitch-deck"] .metric__value { font-size: 2.4em; }

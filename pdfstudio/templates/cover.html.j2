@@ -1,0 +1,37 @@
+<section class="cover-page" aria-label="Cover">
+<div class="cover cover--{{ cover_style }}">
+  {% if cover_style == 'image' and cover_image_uri %}
+  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  <div class="cover__scrim"></div>
+  {% elif cover_style == 'split' and cover_image_uri %}
+  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  {% elif cover_style == 'object' and cover_image_uri %}
+  <div class="cover__object"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  {% endif %}
+
+  <div class="cover__content">
+    {% if eyebrow %}<div class="cover__eyebrow">{{ eyebrow }}</div>{% endif %}
+    {% if kicker %}<div class="cover__kicker">{{ kicker }}</div>{% endif %}
+    <h1 class="cover__title">
+      {% for line in title_lines %}<span class="cover__title-line cover__title-line--{{ loop.index }}">{{ line }}</span>{% endfor %}
+    </h1>
+    {% if subtitle %}<p class="cover__subtitle">{{ subtitle }}</p>{% endif %}
+    {% if summary %}<p class="cover__summary">{{ summary }}</p>{% endif %}
+    <div class="cover__rule"></div>
+    <div class="cover__meta">
+      {% if author %}<div class="cover__meta-item"><span class="cover__meta-label">Prepared by</span><span class="cover__meta-value">{{ author }}</span></div>{% endif %}
+      {% if org %}<div class="cover__meta-item"><span class="cover__meta-label">Organisation</span><span class="cover__meta-value">{{ org }}</span></div>{% endif %}
+      {% if client %}<div class="cover__meta-item"><span class="cover__meta-label">Prepared for</span><span class="cover__meta-value">{{ client }}</span></div>{% endif %}
+      {% if date %}<div class="cover__meta-item"><span class="cover__meta-label">Date</span><span class="cover__meta-value">{{ date }}</span></div>{% endif %}
+      {% if version %}<div class="cover__meta-item"><span class="cover__meta-label">Version</span><span class="cover__meta-value">{{ version }}</span></div>{% endif %}
+    </div>
+  </div>
+
+  {% if brand_mark %}
+  <div class="cover__brand">{{ brand_mark|safe }}</div>
+  {% elif org %}
+  <div class="cover__brand">{{ org }}</div>
+  {% endif %}
+  {% if confidential %}<div class="cover__stamp">{{ confidential }}</div>{% endif %}
+</div>
+</section>
