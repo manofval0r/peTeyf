@@ -1,0 +1,15 @@
+# Build outputs
+out/
+.pdfstudio/
+
+# Caches
+assets/cache/
+__pycache__/
+*.pyc
+
+# Inspection artifacts
+.taste-skill/
+
+# OS
+.DS_Store
+Thumbs.db

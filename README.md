@@ -1,24 +1,28 @@
-# PDF Studio — Design-First PDF Generation
+# PDF Studio
 
-> **Skill version**: 2.0 (post-contrast / measurable-QA / named-page / image-review upgrade)  
-> **Purpose**: Turn Markdown/JSON/HTML into art-directed, print-ready PDFs with real design systems, web-sourced credited images, generated charts, accessible tags, and a verification loop — not a printout.
+**Design-first PDF generation — Markdown / JSON / HTML → art-directed, print-ready PDF.**
+
+> *A PDF is a design artifact, not a printout of a text file.*
+> Build, look at the pages, fix what is wrong, rebuild. The QA loop *is* the skill.
 
 ---
 
 ## What it produces
 
-A finished PDF that reads like it was composed, not dumped:
+A finished PDF that reads like it was composed by hand:
 
-- **Cover** (named `@page cover`, zero margin, bounded photo + solid text fields, brand font, confidential badge)
-- **Table of contents** with correct page numbers (two-pass scan, rebuilt if content shifts)
-- **Body chapters** full-bleed, full-height, alternating colour fields, 12pt body, 68ch measure, real running header/footer at 9pt in brand font
-- **Charts** with brand fonts, horizontal labels, direct value labels, legend outside plot, `Fig. N` figure numbers
-- **Images** sourced, cached, embedded as base64 data URIs with attribution; no network dependency at render time
-- **Credits block** automatically assembled from every embedded image
-- **Back cover** using a dedicated image, never the cover photo reused
-- **Tagged PDF** (`StructTreeRoot`, `MarkInfo`, `Lang`, outline, page mode) preserved via single-document Chromium → PyMuPDF finalize (`garbage=3`)
+| Artifact | Detail |
+|---|---|
+| **Cover** | Named `@page cover` (zero margin), bounded photograph + solid text fields so type never collides with busy imagery |
+| **TOC** | Real page numbers via a two-pass scan that rebuilds if content shifts |
+| **Body chapters** | Full-bleed, full-height colour fields, 12pt body, 68ch measure, running header/footer at 9pt in brand font |
+| **Charts** | Brand-font loaded, horizontal labels when long, direct value labels, legend outside plot, `Fig. N` numbering |
+| **Images** | Sourced from Wikimedia Commons / Wikipedia / Openverse, throttled & retried, cached, embedded as base64 data URIs, credited automatically |
+| **Credits block** | Assembled from every embedded image — no manual photo credits |
+| **Back cover** | Dedicated image, never the cover photo reused |
+| **Tagged PDF** | `StructTreeRoot`, `MarkInfo`, `Lang`, outline, `PageMode=/UseOutlines` — preserved via single-document Chromium → PyMuPDF finalize (`garbage=3`) |
 
-Verified result (Crocs 12-Month plan, rebuilt after upgrade): 18 pages, 8,384 chars, 8 images at 300 dpi, body 12.0pt, smallest 9pt, measure 73 chars/line, `lang=en`, tags yes, outline 10, metadata complete.
+**Verified example** (Crocs 12-Month Growth Plan, rebuilt after upgrade): 18 pages, 8,384 chars, 8 images at 300 dpi, body 12.0pt, smallest 9pt, measure 73 chars/line, `lang=en`, tags yes, outline 10, metadata complete.
 
 ---
 
@@ -27,21 +31,21 @@ Verified result (Crocs 12-Month plan, rebuilt after upgrade): 18 pages, 8,384 ch
 ```bash
 # Build with previews
 python -m pdfstudio build examples/crocs-plan.md \
-    --out out/crocs-plan.pdf --preview-pages 18 --keep-html
+    --out out/crocs-plan.pdf --preview-pages 18 --keep-html --strict
 
 # Measure the finished PDF against declared design intent
 python -m pdfstudio check out/crocs-plan.pdf --source examples/crocs-plan.md
 
-# Build the image-candidate sheet before pinning any photograph
+# Build an image-candidate sheet before pinning any photograph
 python -m pdfstudio images "crocs retail display" --out out/candidates.jpg
 
-# Copy gate with locale
+# Copy gate with locale enforcement
 python -m pdfstudio copycheck examples/crocs-plan.md --locale en-GB
 ```
 
 ---
 
-## The design systems (`theme`)
+## 🎨 Design systems (themes)
 
 | Theme | Mood | Font pair | Cover style |
 |---|---|---|---|
@@ -57,11 +61,11 @@ python -m pdfstudio copycheck examples/crocs-plan.md --locale en-GB
 | **midnight** | Dark cover, luminous | Manrope / Source Serif 4 | image |
 | **vibrant** | Saturated, energetic | Space Grotesk / Source Serif 4 | split |
 
-Themes inject tokens (`--font-body`, `--font-display`, `--ink`, `--accent`, `--measure`, `--page-margin`) into CSS; templates stay theme-agnostic.
+Themes inject CSS custom properties (`--font-body`, `--font-display`, `--ink`, `--accent`, `--measure`, `--page-margin`); templates stay theme-agnostic.
 
 ---
 
-## The scenarios (`scenario`)
+## 📄 Scenarios
 
 | ID | Use for | Default theme | Cover | Layout |
 |---|---|---|---|---|
@@ -82,13 +86,13 @@ Themes inject tokens (`--font-body`, `--font-display`, `--ink`, `--accent`, `--m
 
 ---
 
-## Art directions (`art_direction`)
+## 🎯 Art directions
 
 9 directions control cover mood + body composition: `object-playful` (Crocs), `editorial-contrast`, `quiet-luxury`, `technical-field`, `industrial-machine`, `institutional-clarity`, `organic-human`, `scholarly-book`, `essential-minimal`. Set explicitly (`art_direction: object-playful`) or inferred from topic.
 
 ---
 
-## Source format (`.md` + frontmatter)
+## 📝 Source format
 
 ```yaml
 ---
@@ -105,8 +109,9 @@ org: "Crocs Growth Lab"
 confidential: "Working draft"
 summary: "A practical plan for turning occasional buyers into loyal members..."
 cover_image: "search:commons:DFC 4366 ..."
-cover_caption: "Colourful Crocs clogs decorated with charms."
+cover_caption: "Colourful Crocs clogs and sandals decorated with Jibbitz charms."
 toc_title: "The plan at a glance"
+page_size: A4
 back_cover:
   title: "Come back for comfort."
   text: "Start with the people who already love the product..."
@@ -115,145 +120,139 @@ back_cover:
 ```
 
 Content blocks (pre-processed before Markdown conversion):
-- `metrics` — 3-5 numbers, delta shown
-- `swot` — 2x2 matrix, not a table
-- `chart bar / line / stacked / pie / donut / area` — data to PNG
-- Callouts: `> [!NOTE] ...`, `> [!KEY] ...`, `> [!ACTION] ...`, `> [!WARNING] ...`
-- Images: `![alt](search:description)` / `img:path` / URL / `search:commons:Exact File.jpg`
-- Page breaks: `<div class="page-break"></div>` or `## Heading {.no-toc}`
+
+- **Metric row** — `Label | Value | delta`
+- **SWOT** — 2×2 matrix
+- **Chart** — `bar`, `line`, `stacked`, `pie`, `donut`, `area`
+- **Callouts** — `> [!NOTE]`, `> [!KEY]`, `> [!ACTION]`, `> [!WARNING]`
+- **Images** — `![alt](search:description)`, `img:path`, URL, or `search:commons:Exact File.jpg`
+- **Page breaks** — `<div class="page-break"></div>` or `## Heading {.no-toc}`
 
 ---
 
-## Image sourcing (upgraded)
+## 🖼️ Image sourcing (upgraded)
 
-Providers: Wikimedia Commons (primary, fast) → Wikipedia media (fallback) → Openverse.
+- **Providers**: Wikimedia Commons (primary) → Wikipedia media → Openverse fallback
+- **Throttled uploads** at `upload.wikimedia.org` (1.5s gap) with 4 retries + backoff
+- **Relevance ranking** via synonym groups (`shoe`↔`footwear`↔`clog`) + zero-match penalty — unrelated high-res photos can't win
+- **Dedupe** — `avoid=` prevents reusing the cover photo in the body
+- **Contact sheet** — `contact_sheet()` renders thumbnails with index / title / dimensions / licence for visual verification before pinning
+- **Exact pinning** — `search:commons:Israel Batch 1 (640).JPG` locks the exact file; later searches cannot drift
 
-- Downloads throttled at `upload.wikimedia.org` (1.5s gap) with 4 retries + backoff.
-- Relevance ranking uses synonym groups (`shoe`↔`footwear`↔`clog`) and a zero-match penalty (prevents unrelated high-res photos from winning).
-- `resolve_search(..., avoid=...)` prevents reusing cover photo in body.
-- `contact_sheet()` produces a labelled thumbnail sheet (index / title / dims / licence) for visual verification — **look at the sheet before pinning**.
-- Once pinned with `search:commons:Israel Batch 1 (640).JPG`, the exact file is locked; later searches cannot drift.
-
-Credits block auto-assembled from all embedded images; if images present but no credits, `check` reports `missing_credits`.
-
----
-
-## Chart styling (`charts.py` — rebuilt)
-
-- Brand font (`Manrope.ttf`, `clash-grotesk-500.ttf`) loaded by explicit `FontProperties(fname=...)` — avoids "false" family-name issue on Clash Grotesk 400.
-- Long category names → horizontal bars automatically.
-- Direct value labels on every bar / point.
-- Legend placed below plot (`bbox_to_anchor=(0.0, 1.01)`), never over data.
-- Caption format: `<figcaption><span class="figure__num">Fig. 2</span> Title</figcaption>`
-- No "Illustrative" in chart titles; planning-assumptions note added to source.
+Every embedded image lands in an automatic credits block; missing credits trigger a QA error.
 
 ---
 
-## Contrast (`contrast.py` — isolated fix)
+## 📊 Charts (`charts.py` — rebuilt)
 
-- Playwright probe measures WCAG ratio against pixels actually behind each text element (handles photos, gradients, strong colour fields).
-- **Non-display text** (body, caption, label, credit): isolated solid-field CSS (`background` + `color` + `padding`) scoped to the exact selector — only that element changes.
-- **Display text** (headlines, cover title): reported, not auto-patched — fix is composition (solid field / bounded photo / crop).
-- `build` applies `fix_css` automatically; `check` reports remaining clashes.
+- Brand font loaded via explicit `FontProperties(fname=...)` — avoids Clash Grotesk 400's "false" family-name bug
+- **Horizontal bars** auto-applied when category labels exceed 13 characters
+- **Direct value labels** on every bar / point
+- **Legend** placed below plot (`bbox_to_anchor=(0.0, 1.01)`), never over data
+- **Figure captions**: `<span class="figure__num">Fig. N</span> Title`
+- No "Illustrative" in chart titles; one planning-assumptions note added
 
 ---
 
-## Pipeline (`render.py` — single document)
+## 🔍 Contrast (`contrast.py` — isolated fix)
+
+Chromium probe measures WCAG ratio against the **actual pixels behind each glyph**:
+
+- **Non-display text** (body, caption, label, credit): isolated solid-field CSS scoped to the exact selector — only that element changes
+- **Display text** (headlines, cover title): reported, not auto-patched — composition change required (solid field / bounded photo / crop)
+
+`build` applies `fix_css` automatically; `check` reports remaining clashes.
+
+---
+
+## 🔧 Pipeline (`render.py` — single document)
 
 1. **Cover + body in one HTML** (not merged PDFs) — preserves `StructTreeRoot`
-2. Named pages: `@page cover` (zero margin, no running furniture) + `@page` (margin-box header/footer at 9pt brand font)
-3. `html, body { overflow: hidden }` — restores real 12pt/48pt (fixes silent 9.4% Chromium shrink when one element overflows the page)
-4. Full-bleed technique: `width: var(--page-w); margin-left: -18mm; min-height: var(--inner-h)` — tested at 48.0pt H1
-5. Chapter wrapping (`_wrap_chapters`) → `.chapter` sections with `break-before: page`
-6. Two-pass TOC: pass 1 renders; `fitz` scans heading pages; pass 2 injects page numbers; rebuilt if page counts shift
-7. `finalize_pdf`: `fitz.set_metadata`, `set_toc`, `Lang`, `PageMode=/UseOutlines`, save `garbage=3`
+2. **Named pages**: `@page cover` (zero margin, no running furniture) + `@page` (margin-box header/footer at 9pt brand font)
+3. **`html, body { overflow: hidden }`** — restores real 12pt / 48pt sizes (fixes silent 9.4% Chromium shrink when one element overflows the page)
+4. **Full-bleed**: `width: var(--page-w); margin-left: -18mm; min-height: var(--inner-h)` — tested at 48.0pt H1
+5. **Chapter wrapping** → `.chapter` sections with `break-before: page`
+6. **Two-pass TOC**: pass 1 renders; `fitz` scans heading pages; pass 2 injects page numbers; rebuilds if page counts shift
+7. **Finalize**: `fitz.set_metadata`, `set_toc`, `Lang`, `PageMode=/UseOutlines`, save `garbage=3`
 
 ---
 
-## QA (`qa.py` — measurable gates)
+## 🧪 Measurable QA gates (`qa.py`)
 
-`analyze()` measures, not guesses. Structured `issues` + `gates` (boolean) + legacy `warnings`. Call with `expect={...}` from source.
+`analyze()` measures, does not guess. Structured `issues` + boolean `gates`:
 
-| Gate | Check | Fail if |
-|---|---|---|
-| `type_floor` | Font size ≥ floor (9pt) | Any text below floor |
-| `measure` | Line length inside target ±24ch | Lines too long / short |
-| `no_clipping` | No text at page edge | `edge_clip` issue |
-| `no_orphan_headings` | Heading not stranded at page foot | `heading_orphan` |
-| `page_fill` | No empty / half-empty pages | `empty_page` / `sparse_page` |
-| `metadata` | Title/author/subject/keywords present | `metadata` |
-| `language` | `/Lang` set | `no_lang` |
-| `tagged` | `StructTreeRoot` present | `no_tags` |
-| `outline` | TOC entries ≥ 2 | `no_outline` |
-| `image_resolution` | Effective DPI ≥ 150 | `image_dpi` |
-| `no_duplicate_images` | No identical hashes on different pages | `duplicate_image` |
-| `credits` | Credits block when images present | `missing_credits` |
+| Gate | Fail condition |
+|---|---|
+| **type_floor** | Any text below declared size (default 9pt floor) |
+| **measure** | Body line length outside target ±24ch |
+| **no_clipping** | Text touches page edge |
+| **no_orphan_headings** | Heading stranded at page foot |
+| **page_fill** | Empty / half-empty spill pages |
+| **metadata** | Missing title / author / subject / keywords |
+| **language** | `/Lang` not set |
+| **tagged** | `StructTreeRoot` missing |
+| **outline** | TOC entries < 2 |
+| **image_resolution** | Effective DPI < 150 |
+| **no_duplicate_images** | Identical image hash on multiple pages |
+| **credits** | Images present but no credits block |
 
-Also reported: body size vs declared (`body_size`), smallest used (`min_font`), image count / dimensions / displayed size, page fill %, orientation.
-
-Previews rendered to PNG (`max_previews`, `preview_dpi`); inspect with the image-reading tool.
+`check` aggregates into a human-readable report; `--strict` exits non-zero on error-level failures.
 
 ---
 
-## CLI reference
+## 🖥️ CLI reference
 
 ```bash
 # Build
-python -m pdfstudio build input.md [-o out.pdf] [-s SCENARIO] [-t THEME]
+python -m pdfstudio build INPUT [-o OUT] [-s SCENARIO] [-t THEME]
     [--art-direction D] [--copy-policy strict|warn|off] [--title T]
-    [--page-size A4|Letter...] [--landscape|--portrait]
-    [--toc|--no-toc] [--cover|--no-cover] [--engine auto|playwright|weasyprint]
-    [--images auto|off] [--preview-pages N] [--no-preview] [--no-stamp]
-    [--no-bookmarks] [--keep-html] [--no-contrast] [--strict] [--css FILE...]
+    [--page-size SIZE] [--landscape|--portrait]
+    [--toc|--no-toc] [--cover|--no-cover]
+    [--engine auto|playwright|weasyprint] [--images auto|off]
+    [--preview-pages N] [--no-preview] [--no-stamp] [--no-bookmarks]
+    [--keep-html] [--no-contrast] [--strict] [--css FILE...]
 
 # Measure finished PDF
-python -m pdfstudio check out.pdf [--source input.md]
+python -m pdfstudio check FILE.pdf [--source INPUT.md]
     [--body-size PT] [--min-font PT] [--measure CH] [--cover-pages N]
     [--previews DIR] [--pages N] [--json]
 
 # Image review (visual selection before pinning)
-python -m pdfstudio images "query" [--out sheet.jpg] [--count 12] [--columns 4]
+python -m pdfstudio images "query" [--out SHEET.jpg] [--count N] [--columns N]
 
 # Copy quality
-python -m pdfstudio copycheck input.md [--locale en-GB|en-US]
+python -m pdfstudio copycheck INPUT.md [--locale en-GB|en-US]
 
 # Discovery
 python -m pdfstudio scenarios | themes | designs | directions
-python -m pdfstudio inspect file.pdf [--previews DIR] [--pages N] [--json]
+python -m pdfstudio inspect FILE.pdf [--previews DIR] [--pages N] [--json]
 ```
 
 ---
 
-## Verification commands (run after every build)
+## ✅ Verification loop (mandatory)
 
 ```bash
-python -m pdfstudio build examples/crocs-plan.md --out out/crocs-plan.pdf --preview-pages 18
-python -m pdfstudio check out/crocs-plan.pdf --source examples/crocs-plan.md
-python -m pdfstudio copycheck examples/crocs-plan.md --locale en-GB
-# Look at out/.pdfstudio/previews/*.png before reporting done
+python -m pdfstudio build doc.md --out out/doc.pdf --preview-pages 12 --strict
+python -m pdfstudio check out/doc.pdf --source doc.md
+python -m pdfstudio copycheck doc.md --locale en-GB
+# Inspect out/.pdfstudio/previews/*.png after the final build
 ```
 
----
-
-## Design-taste rules enforced
-
-- No generic template output; cover earns the first page, not just a title over a photo.
-- Typography: display weight 400/600, letter-spacing `-0.05em`, body measure `68ch`, line-height `1.45`.
-- Colour: palette from theme, not random; accent used for badges / page numbers / rules.
-- No em dashes in content or filenames; no emoji; no replacement characters.
-- Numbers in charts / metrics, not hidden in prose.
-- Every image credited; every figure numbered; every page has a purpose.
+**Never ship the first render.** Rebuild until previews pass all gates.
 
 ---
 
-## Dependencies
+## 📦 Dependencies
 
-Python 3.10+, Playwright with Chromium, PyMuPDF (`fitz`), matplotlib, Pillow, requests, Jinja2, markdown. Optional: WeasyPrint (if Chromium unavailable — expect weaker layout), PyYAML.
-
-Fonts bundled in `assets/fonts/` (Clash Grotesk, Manrope, Fraunces, Source Serif 4, Space Grotesk, Barlow) so charts and margin boxes load the real font, not Helvetica fallback.
+Python 3.10+, Playwright + Chromium, PyMuPDF (`fitz`), matplotlib, Pillow, requests, Jinja2, markdown. Fonts bundled in `assets/fonts/` (Clash Grotesk, Manrope, Fraunces, Source Serif 4, Space Grotesk, Barlow) so charts and margin boxes render with exact typefaces — no Helvetica fallback.
 
 ---
 
-## License
+## 📜 License
 
-MIT. Skill is standalone; it produces the PDF, it does not claim the content.
+MIT.
+
+---
+
+*PDF Studio: build once, look at the pixels, fix what's wrong, rebuild.*
