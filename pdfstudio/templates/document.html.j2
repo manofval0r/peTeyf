@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="{{ lang|default('en') }}">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>{{ title }}</title>
+<meta name="author" content="{{ author|default('') }}" />
+<meta name="description" content="{{ description|default('') }}" />
+<meta name="keywords" content="{{ keywords|default('') }}" />
+<meta name="generator" content="PDF Studio" />
+<meta name="color-scheme" content="light" />
+<style>
+{{ css|safe }}
+</style>
+</head>
+<body class="doc {{ body_classes }}" data-theme="{{ theme }}" data-scenario="{{ scenario }}" data-direction="{{ direction }}">
+{{ cover_html|safe }}
+{{ body_html|safe }}
+</body>
+</html>

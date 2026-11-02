@@ -1,0 +1,35 @@
+{% if toc_entries %}
+<section class="toc{% if toc_entries|length > 16 %} toc--dense{% endif %}">
+  <div class="toc__head">
+    <div class="toc__eyebrow">{{ toc_label|default('Contents') }}</div>
+    <h1 class="toc__title">{{ toc_title|default('In this document') }}</h1>
+  </div>
+  <ol class="toc__list">
+    {% for e in toc_entries %}
+    <li class="toc__item toc__item--h{{ e.level }}">
+      <a href="#{{ e.id }}">
+        <span class="toc__text">{{ e.text }}</span>
+        <span class="toc__leader"></span>
+        <span class="toc__page">{{ e.page if e.page else '' }}</span>
+      </a>
+    </li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
+<main class="content">
+{{ body_html|safe }}
+</main>
+
+{{ credits_html|safe }}
+
+{% if back_cover %}
+<section class="back-cover">
+  {% if back_cover_image_uri %}<div class="back-cover__object"><img src="{{ back_cover_image_uri }}" alt="" /></div>{% endif %}
+  <div class="back-cover__rule"></div>
+  {% if back_cover.title %}<h2>{{ back_cover.title }}</h2>{% endif %}
+  {% if back_cover.text %}<p>{{ back_cover.text }}</p>{% endif %}
+  {% if back_cover.contact %}<p class="back-cover__contact">{{ back_cover.contact }}</p>{% endif %}
+</section>
+{% endif %}

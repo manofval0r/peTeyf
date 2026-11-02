@@ -1,0 +1,16 @@
+# PDF Studio — runtime dependencies
+# Install:  python -m pip install -r requirements.txt
+#           python -m playwright install chromium
+
+playwright>=1.40          # Chromium rendering (primary engine)
+PyMuPDF>=1.24             # QA, previews, header/footer stamping, bookmarks
+matplotlib>=3.8           # Charts (line/bar/stacked/pie/donut/area)
+markdown>=3.5             # Markdown -> HTML (tables, fenced code, attr_list)
+Jinja2>=3.1               # HTML templates
+Pillow>=10.0              # Image validation, resizing, colour extraction
+requests>=2.31            # Wikimedia / Wikipedia / Openverse image sourcing
+PyYAML>=6.0               # Frontmatter (optional; a built-in parser is used if absent)
+pypdf>=4.0                # Fallback PDF merge/stamping helpers
+
+# Optional fallback engine (native, no browser; weaker CSS support)
+# weasyprint>=61
