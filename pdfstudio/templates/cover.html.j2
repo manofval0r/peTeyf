@@ -1,15 +1,15 @@
 <section class="cover-page" aria-label="Cover">
 <div class="cover cover--{{ cover_style }}">
   {% if cover_style == 'image' and cover_image_uri %}
-  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" /></div>
+  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:cover;object-position:{{ cover_focal }}" /></div>
   <div class="cover__scrim"></div>
   {% elif cover_style == 'split' and cover_image_uri %}
   <div class="cover__media">
-    <img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" />
+    <img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:cover;object-position:{{ cover_focal }}" />
     <div class="cover__media-overlay"></div>
   </div>
   {% elif cover_style == 'object' and cover_image_uri %}
-  <div class="cover__object"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" /></div>
+  <div class="cover__object"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:contain;object-position:{{ cover_focal }}" /></div>
   {% endif %}
 
   <div class="cover__content">
@@ -18,7 +18,10 @@
       {% if brand_mark %}
       <div class="cover__brand">{{ brand_mark|safe }}</div>
       {% elif org %}
-      <div class="cover__brand"><span class="cover__brand-text">{{ org }}</span></div>
+      <div class="cover__brand">
+        <span class="cover__brand-pip"></span>
+        <span class="cover__brand-text">{{ org }}</span>
+      </div>
       {% endif %}
       {% if confidential %}<div class="cover__stamp">{{ confidential }}</div>{% endif %}
     </div>
