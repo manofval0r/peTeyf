@@ -441,3 +441,128 @@ body[data-theme="national"] .cover__eyebrow {
 body[data-theme="national"] .cover__title {
   color: var(--cover-ink);
 }
+
+
+/* --- Nordic ------------------------------------------------------------- */
+body[data-theme="nordic"] .content h1 {
+  font-family: var(--font-display);
+  border-bottom: 2px solid var(--accent);
+  padding-bottom: 6pt;
+  color: var(--ink);
+}
+body[data-theme="nordic"] .content h2 {
+  color: #0369a1;
+  border-top: 0;
+  padding-top: 0;
+}
+body[data-theme="nordic"] .metric {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+  border-radius: 6px;
+}
+body[data-theme="nordic"] .callout {
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  border-radius: 6px;
+}
+
+/* --- Monograph ---------------------------------------------------------- */
+body[data-theme="monograph"] .content h1 {
+  font-family: var(--font-display);
+  border-bottom: 1.5px solid var(--accent);
+  padding-bottom: 8pt;
+  color: #881337;
+  text-align: center;
+}
+body[data-theme="monograph"] .content h2 {
+  font-family: var(--font-display);
+  font-size: 15pt;
+  border-top: 1px solid var(--rule);
+  padding-top: 8pt;
+  color: #1C1917;
+}
+body[data-theme="monograph"] .content h2::after {
+  content: "";
+  display: block;
+  width: 25mm;
+  height: 1.5pt;
+  background: var(--accent);
+  margin-top: 5pt;
+}
+body[data-theme="monograph"] .callout {
+  background: var(--panel);
+  border-left: 3px solid var(--accent);
+  font-style: italic;
+}
+body[data-theme="monograph"] .metric {
+  border-top: 2px solid var(--accent);
+  background: var(--panel);
+}
+
+/* --- Fintech / Quant ---------------------------------------------------- */
+body[data-theme="fintech"] .content h1 {
+  font-family: var(--font-display);
+  letter-spacing: -0.03em;
+  border-bottom: 2px solid var(--ink);
+  padding-bottom: 6pt;
+}
+body[data-theme="fintech"] .content h2 {
+  color: #1d4ed8;
+  font-family: var(--font-display);
+  letter-spacing: -0.02em;
+}
+body[data-theme="fintech"] .metric {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px;
+}
+body[data-theme="fintech"] .metric__value {
+  font-family: var(--font-mono);
+  color: #0f172a;
+}
+body[data-theme="fintech"] .content table {
+  border-collapse: collapse;
+}
+body[data-theme="fintech"] .content thead th {
+  background: #0f172a;
+  color: #ffffff;
+}
+
+/* --- Heritage Dispatch -------------------------------------------------- */
+body[data-theme="heritage"] .content h1 {
+  font-family: var(--font-display);
+  border-bottom: 2.5px solid var(--accent);
+  padding-bottom: 6pt;
+  color: #7f1d1d;
+}
+body[data-theme="heritage"] .content h2 {
+  border-top: 0;
+  padding-top: 0;
+  padding-left: 10pt;
+  position: relative;
+  color: #0c131f;
+}
+body[data-theme="heritage"] .content h2::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.15em;
+  bottom: 0.15em;
+  width: 4px;
+  background: var(--accent);
+}
+body[data-theme="heritage"] .callout {
+  background: var(--panel);
+  border-left: 4px solid var(--accent);
+}
+body[data-theme="heritage"] .metric {
+  border-top: 3px solid var(--accent);
+  border-left: 1px solid var(--rule);
+  background: var(--panel);
+}
+body[data-theme="heritage"] .cover__rule {
+  background: var(--accent-2);
+  width: 50mm;
+}

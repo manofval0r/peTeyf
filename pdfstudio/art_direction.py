@@ -263,6 +263,10 @@ THEME_DEFAULTS = {
     "minimal": "essential-minimal", "corporate": "institutional-clear",
     "warm-sage": "organic-human", "midnight": "technical-field",
     "vibrant": "object-playful", "national": "institutional-clear",
+    "nordic": "organic-human",
+    "monograph": "scholarly-book",
+    "fintech": "technical-field",
+    "heritage": "institutional-clear",
 }
 
 

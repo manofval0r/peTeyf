@@ -352,6 +352,100 @@ _register(DesignSystem(
 ))
 
 
+
+_register(DesignSystem(
+    id="nordic",
+    label="Nordic",
+    mood="Clean, cool, airy, humanist minimalism",
+    fonts=FontPair(
+        display="'Inter Tight', 'Segoe UI', 'Helvetica Neue', sans-serif",
+        body="'Inter', 'Segoe UI', 'Helvetica Neue', sans-serif",
+        mono="'JetBrains Mono', Consolas, monospace",
+    ),
+    palette=Palette(
+        bg="#F8FAFC", ink="#0F172A", muted="#64748B",
+        accent="#0284C7", accent_ink="#FFFFFF", accent2="#0D9488",
+        rule="#E2E8F0", panel="#EDF4F9", panel_ink="#0F172A",
+        success="#0D9488", warning="#D97706", danger="#E11D48",
+        cover_bg="#0F172A", cover_ink="#F8FAFC",
+    ),
+    radius="6px", rule_width="1px", heading_weight="600",
+    display_weight="700", letter_spacing="-0.015em",
+    body_size="10.2pt", line_height="1.55", measure="82ch",
+    margin="16mm 14mm 18mm 14mm",
+    cover_style="split", toc_style="rule", texture="none",
+))
+
+_register(DesignSystem(
+    id="monograph",
+    label="Monograph",
+    mood="Scholarly, archival, authoritative university press",
+    fonts=FontPair(
+        display="'Playfair Display', 'Georgia', 'Baskerville', serif",
+        body="'Source Serif 4', 'Georgia', 'Cambria', serif",
+        mono="'JetBrains Mono', Consolas, monospace",
+    ),
+    palette=Palette(
+        bg="#FCFBF7", ink="#1C1917", muted="#78716C",
+        accent="#881337", accent_ink="#FFFFFF", accent2="#B45309",
+        rule="#E7E5E4", panel="#F5F3EF", panel_ink="#1C1917",
+        success="#15803D", warning="#B45309", danger="#991B1B",
+        cover_bg="#1C1917", cover_ink="#FCFBF7",
+    ),
+    radius="0px", rule_width="1px", heading_weight="700",
+    display_weight="700", letter_spacing="0em",
+    body_size="10.4pt", line_height="1.6", measure="78ch",
+    margin="16mm 14mm 18mm 14mm",
+    cover_style="minimal", toc_style="rule", texture="none",
+))
+
+_register(DesignSystem(
+    id="fintech",
+    label="Fintech / Quant",
+    mood="High-precision, data-dense, quantitative terminal",
+    fonts=FontPair(
+        display="'Space Grotesk', 'Segoe UI', sans-serif",
+        body="'Inter', 'Segoe UI', 'Arial', sans-serif",
+        mono="'Space Mono', 'JetBrains Mono', Consolas, monospace",
+    ),
+    palette=Palette(
+        bg="#FFFFFF", ink="#0B0F19", muted="#475569",
+        accent="#2563EB", accent_ink="#FFFFFF", accent2="#059669",
+        rule="#E2E8F0", panel="#F1F5F9", panel_ink="#0B0F19",
+        success="#059669", warning="#D97706", danger="#DC2626",
+        cover_bg="#0B0F19", cover_ink="#FFFFFF",
+    ),
+    radius="4px", rule_width="1px", heading_weight="700",
+    display_weight="800", letter_spacing="-0.02em",
+    body_size="10pt", line_height="1.5", measure="82ch",
+    margin="16mm 14mm 18mm 14mm",
+    cover_style="split", toc_style="rule", texture="grid",
+))
+
+_register(DesignSystem(
+    id="heritage",
+    label="Heritage Dispatch",
+    mood="Dignified, historic, presidential and diplomatic statecraft",
+    fonts=FontPair(
+        display="'Georgia', 'Times New Roman', serif",
+        body="'Segoe UI', 'Inter', 'Arial', sans-serif",
+        mono="'JetBrains Mono', Consolas, monospace",
+    ),
+    palette=Palette(
+        bg="#FAFAF9", ink="#0C131F", muted="#57606A",
+        accent="#7F1D1D", accent_ink="#FFFFFF", accent2="#CA8A04",
+        rule="#D6D3D1", panel="#F3F2EE", panel_ink="#0C131F",
+        success="#15803D", warning="#B45309", danger="#991B1B",
+        cover_bg="#1E1B24", cover_ink="#FAFAF9",
+    ),
+    radius="2px", rule_width="1.5px", heading_weight="700",
+    display_weight="800", letter_spacing="-0.01em",
+    body_size="10.2pt", line_height="1.55", measure="82ch",
+    margin="16mm 14mm 18mm 14mm",
+    cover_style="split", toc_style="rule", texture="none",
+))
+
+
 def get_theme(theme_id: str) -> DesignSystem:
     """Return declared tokens; reject misspelled explicit choices."""
     if theme_id not in THEMES:
