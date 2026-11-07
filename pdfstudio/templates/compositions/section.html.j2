@@ -1,0 +1,5 @@
+<section class="chapter family--{{ layout.family_id }} treatment--{{ layout.treatment }} columns--{{ layout.columns }} heading--{{ layout.presentations.heading }}{% if layout.field %} field--{{ layout.field }}{% endif %}" data-section-id="{{ layout.section_id }}" data-composition="{{ layout.family_id }}" data-columns="{{ layout.columns }}">
+{% if layout.family_id == 'technical-reference' %}<div class="chapter__index" aria-hidden="true">{{ '%02d'|format(number) }}</div>{% endif %}
+{{ blocks_html|safe }}
+{% if credits_html %}<div class="catalogue-credits">{{ credits_html|safe }}</div>{% endif %}
+</section>

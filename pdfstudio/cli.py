@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .art_direction import DIRECTIONS, apply_direction, infer_direction, list_directions
 from .content import load_document
+from .design import FAMILIES, resolve_design
 from .copyedit import audit_copy, errors as copy_errors, format_issues
 from .qa import analyze, format_report, has_errors as qa_has_errors
 from .render import RenderOptions, render
@@ -67,12 +68,15 @@ def cmd_build(args: argparse.Namespace) -> int:
 
     scenario_id = args.scenario or str(doc.meta.get("scenario") or "report")
     if scenario_id not in SCENARIOS:
-        scenario_id = "report"
+        raise ValueError(f"Unknown scenario {scenario_id!r}. Supported: {', '.join(SCENARIOS)}")
 
     opts = RenderOptions(
         output=out,
         scenario=scenario_id,
         theme=args.theme,
+        composition=args.composition,
+        output_mode=args.output_mode,
+        art_direction=args.art_direction,
         page_size=args.page_size,
         landscape=args.landscape,
         toc=args.toc,
@@ -89,7 +93,8 @@ def cmd_build(args: argparse.Namespace) -> int:
     )
 
     scenario = get_scenario(scenario_id)
-    theme = get_theme(args.theme or scenario.default_theme)
+    decision = resolve_design(doc, opts)
+    theme = decision.tokens
     print(f"Building '{doc.meta.get('title') or src.stem}'")
     print(f"  scenario : {scenario.id} ({scenario.label})")
     print(f"  design   : {theme.id} ({theme.label})")
@@ -159,6 +164,14 @@ def cmd_designs(_args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_compositions(_args: argparse.Namespace) -> int:
+    from .compositions import GRAMMAR
+    print('Content/asset compositions (independent of theme)\n')
+    for family, variants in GRAMMAR.items():
+        print(f"{family:<24} metrics={variants['metrics']}; headings={variants['heading']}")
+    return 0
+
+
 def cmd_directions(_args: argparse.Namespace) -> int:
     print("Topic-aware art directions\n")
     for direction in list_directions():
@@ -195,11 +208,13 @@ def _expect_from_source(source: Path) -> dict:
     doc = load_document(source)
     scenario_id = str(doc.meta.get("scenario") or "report")
     if scenario_id not in SCENARIOS:
-        scenario_id = "report"
+        raise ValueError(f"Unknown scenario {scenario_id!r}. Supported: {', '.join(SCENARIOS)}")
     scenario = get_scenario(scenario_id)
     theme = get_theme(str(doc.meta.get("theme") or scenario.default_theme))
-    direction = infer_direction(doc.meta, scenario.id, doc.body_html, theme.id)
-    ds = apply_direction(theme, direction)
+    ds = resolve_design(doc, RenderOptions(output=source.with_suffix('.pdf'))).tokens
+    from .geometry import resolve_geometry
+    mode = resolve_design(doc, RenderOptions(output=source.with_suffix('.pdf'))).output_mode
+    ds.margin = resolve_geometry(str(doc.meta.get('page_size') or scenario.page), bool(doc.meta.get('landscape', scenario.landscape)), mode, (doc.meta.get('design') or {}).get('safe_mm')).margin_css
     margins = tuple(float(v) for v in re.findall(r"(\d+(?:\.\d+)?)\s*mm", ds.margin))
     if len(margins) == 3:
         margins = (margins[0], margins[1], margins[2], margins[1])
@@ -214,7 +229,8 @@ def _expect_from_source(source: Path) -> dict:
         "min_font_pt": 9.0,
         "measure_ch": _float_value(ds.measure, 68.0),
         "margins_mm": margins,
-        "cover_pages": 0 if doc.meta.get("cover") is False else 1,
+        "requires_credits": bool(doc.image_requests or doc.meta.get('cover_image') or doc.meta.get('back_cover_image')),
+        "cover_pages": 0 if doc.meta.get("cover") is False or scenario.cover == 'none' else 1,
     }
 
 
@@ -254,6 +270,15 @@ def cmd_check(args: argparse.Namespace) -> int:
         max_previews=args.pages or 6,
         expect=expect,
     )
+    from .design_qa import check_design
+    manifest_path = Path(args.design_manifest) if getattr(args, 'design_manifest', None) else pdf.with_suffix('.design.json')
+    if manifest_path.is_file():
+        design_report = check_design(pdf, json.loads(manifest_path.read_text(encoding='utf-8')))
+        report['design'] = design_report
+        report.setdefault('issues', []).extend(design_report['issues'])
+        report.setdefault('gates', {})['design_layout'] = design_report['passed']
+    else:
+        report.setdefault('warnings', []).append('No design manifest: technical checks only, not a design-layout pass.')
     print(format_report(report))
     if args.json:
         print(json.dumps(report, indent=2, default=str))
@@ -305,6 +330,8 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Design system (defaults to the scenario's)")
     p_build.add_argument("--art-direction", choices=sorted(DIRECTIONS),
                          help="Explicit art direction (otherwise inferred from topic)")
+    p_build.add_argument('--composition', choices=FAMILIES, help='Content/asset composition, independent of theme')
+    p_build.add_argument('--output-mode', choices=['print','digital'], help='Text-safe page treatment')
     p_build.add_argument("--copy-policy", default="strict",
                          choices=["strict", "warn", "off"],
                          help="Copy quality gate (default: strict)")
@@ -358,6 +385,7 @@ def build_parser() -> argparse.ArgumentParser:
                          help="Leading pages to exclude from body checks")
     p_check.add_argument("--previews", help="Directory for PNG previews")
     p_check.add_argument("--pages", type=int, default=6, help="Preview page count")
+    p_check.add_argument('--design-manifest', help='Design intent JSON; defaults to the PDF sibling .design.json')
     p_check.add_argument("--json", action="store_true", help="Also print JSON")
     p_check.set_defaults(func=cmd_check)
 
@@ -385,7 +413,9 @@ def build_parser() -> argparse.ArgumentParser:
     p_designs = sub.add_parser("designs", help="Map themes to scenarios")
     p_designs.set_defaults(func=cmd_designs)
 
-    p_directions = sub.add_parser("directions", help="List topic-aware art directions")
+    p_compositions = sub.add_parser('compositions', help='List content/asset composition families')
+    p_compositions.set_defaults(func=cmd_compositions)
+    p_directions = sub.add_parser("directions", help="List legacy direction aliases")
     p_directions.set_defaults(func=cmd_directions)
 
     p_copy = sub.add_parser("copycheck", help="Check prose for em dashes, emoji and AI tells")
@@ -398,6 +428,10 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Source titles/credits can be Unicode even on a legacy Windows console.
+    for stream in (sys.stdout, sys.stderr):
+        if hasattr(stream, 'reconfigure'):
+            stream.reconfigure(encoding='utf-8', errors='replace')
     parser = build_parser()
     args = parser.parse_args(argv)
     if not getattr(args, "command", None):

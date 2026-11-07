@@ -11,6 +11,8 @@ from __future__ import annotations
 
 import base64
 import io
+import math
+import re
 import textwrap
 from pathlib import Path
 from typing import List, Optional, Sequence
@@ -20,7 +22,8 @@ try:
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
     from matplotlib import rcParams
-    from matplotlib.font_manager import FontProperties
+    from matplotlib.font_manager import FontProperties, findfont
+    from matplotlib.colors import to_rgb
 except Exception:  # pragma: no cover
     plt = None
     FontProperties = None  # type: ignore
@@ -53,18 +56,42 @@ def _palette_colors(ds: DesignSystem) -> List[str]:
 
 
 def _font(name: str, size: float):
-    """Load a bundled TTF explicitly.
+    """Resolve an effective CSS font stack locally; never fetch web fonts.
 
-    The Clash Grotesk 400 name table reports the family as "false", so asking
-    matplotlib for the family name is unreliable.  An explicit file path works
-    for every bundled font.
+    Explicit TTF paths bypass broken family name tables (e.g. Clash Grotesk).
+    WOFF2 is not supported by matplotlib: use the next installed family or the
+    declared generic serif/sans/mono fallback instead of a fixed brand font.
     """
     if FontProperties is None:
         return None
-    path = FONT_DIR / name
-    if path.exists():
-        return FontProperties(fname=str(path), size=size)
+    size = max(9.0, size)
+    families = [family.strip().strip("'\"") for family in name.split(",")]
+    generic = {"serif": "DejaVu Serif", "sans-serif": "DejaVu Sans", "monospace": "DejaVu Sans Mono"}
+    paths = sorted([*FONT_DIR.glob("*.ttf"), *FONT_DIR.glob("*.otf")])
+    for family in families:
+        direct = FONT_DIR / family
+        if direct.is_file() and direct.suffix.lower() in (".ttf", ".otf"):
+            return FontProperties(fname=str(direct), size=size)
+        key = re.sub(r"[^a-z0-9]", "", family.casefold())
+        for path in paths:
+            stem = re.sub(r"[^a-z0-9]", "", path.stem.casefold())
+            if stem == key or stem.startswith(key) and stem[len(key):].isdigit():
+                return FontProperties(fname=str(path), size=size)
+        resolved_family = generic.get(family.casefold(), family)
+        try:
+            path = findfont(FontProperties(family=[resolved_family]), fallback_to_default=False)
+            return FontProperties(fname=path, size=size)
+        except ValueError:
+            continue
     return FontProperties(family="DejaVu Sans", size=size)
+
+
+def _label_colour(fill: str) -> str:
+    """Choose black/white by WCAG relative-luminance contrast."""
+    rgb = to_rgb(fill)
+    linear = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in rgb]
+    luminance = sum(a * b for a, b in zip(linear, (0.2126, 0.7152, 0.0722)))
+    return "#000000" if (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) else "#FFFFFF"
 
 
 def _fmt(value: float) -> str:
@@ -99,14 +126,22 @@ def _fallback(req: ChartRequest, number: int = 0) -> str:
 
 def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
                width: float = 7.4, height: float = 3.4) -> str:
+    """Render at the final layout width/height in inches, never shrink text.
+
+    The returned raster is exactly width*200 by height*200 pixels and declares
+    its physical width. Callers must pass the available column width; if geometry
+    cannot fit readable labels, a selectable-text table is returned instead.
+    """
+    if not all(isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) and v > 0 for v in (width, height)):
+        raise ValueError("chart width and height must be positive finite inches")
     if plt is None or not req.labels or not req.series:
         return _fallback(req, number)
 
     colors = _palette_colors(ds)
     p = ds.palette
-    body_font = _font("Manrope.ttf", 9.5)
-    small_font = _font("Manrope.ttf", 8.0)
-    display_font = _font("clash-grotesk-500.ttf", 9.5)
+    body_font = _font(ds.fonts.body, 9.5)
+    small_font = _font(ds.fonts.body, 9.5)
+    display_font = _font(ds.fonts.display, 9.5)
 
     rcParams["axes.edgecolor"] = p.rule
     rcParams["axes.labelcolor"] = p.muted
@@ -130,6 +165,14 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
     # chart on its side so every label reads horizontally.
     if kind in ("bar", "column") and max((len(label) for label in labels), default=0) > 13:
         kind = "hbar"
+
+    label_width = max(10, min(30, int(width * 0.44 * 72 / (9.5 * 0.52))))
+    if kind in ("hbar", "horizontal"):
+        rows = sum(len(label.splitlines()) for label in _wrap_labels(labels, label_width))
+        required_pt = rows * 9.5 * 1.25 + n * 6 + (40 if multiple else 24)
+        if required_pt > height * 72 or width < 2.5:
+            plt.close(fig)
+            return _fallback(req, number)
 
     try:
         if kind in ("bar", "column"):
@@ -169,7 +212,7 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
                         fontproperties=display_font, color=p.ink, zorder=4,
                     )
             ax.set_yticks(x)
-            ax.set_yticklabels(_wrap_labels(labels, 30))
+            ax.set_yticklabels(_wrap_labels(labels, label_width))
             ax.invert_yaxis()
         elif kind in ("line", "area"):
             for si, series in enumerate(req.series):
@@ -202,7 +245,7 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
                     if val > 0:
                         ax.text(
                             xi, base + val / 2, _fmt(val), ha="center", va="center",
-                            fontproperties=small_font, color="#FFFFFF", zorder=4,
+                            fontproperties=small_font, color=_label_colour(colors[si % len(colors)]), zorder=4,
                         )
                 bottom = [bottom[i] + vals[i] for i in range(n)]
             ax.set_xticks(x)
@@ -211,12 +254,15 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
             series = req.series[0]
             pie_labels = labels[:len(series)]
             wedgeprops = {"width": 0.42} if kind == "donut" else {}
-            ax.pie(
+            wedges, category_text, value_text = ax.pie(
                 series, labels=_wrap_labels(pie_labels, 16),
-                colors=colors[:len(series)], autopct="%1.0f%%", startangle=90,
+                colors=[colors[i % len(colors)] for i in range(len(series))],
+                autopct="%1.0f%%", startangle=90,
                 wedgeprops=wedgeprops, pctdistance=0.78,
-                textprops={"color": p.ink, "fontsize": 9},
+                textprops={"color": p.ink, "fontsize": 9.5},
             )
+            for wedge, text in zip(wedges, value_text):
+                text.set_color(_label_colour(wedge.get_facecolor()))
             ax.axis("equal")
         else:
             for si, series in enumerate(req.series):
@@ -237,9 +283,13 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
         for spine in ("top", "right", "left", "bottom"):
             ax.spines[spine].set_visible(False)
         ax.tick_params(axis="both", length=0, pad=7)
+        if kind in ("hbar", "horizontal"):
+            ax.margins(x=0.22, y=0.08)
+        else:
+            ax.margins(y=0.18)
 
     # Brand font on every tick and pie label.
-    for label in ax.get_xticklabels() + ax.get_yticklabels():
+    for label in ax.get_xticklabels() + ax.get_yticklabels() + [ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]:
         label.set_fontproperties(body_font)
     if kind in ("pie", "donut"):
         for text in ax.texts:
@@ -254,13 +304,37 @@ def make_chart(req: ChartRequest, ds: DesignSystem, number: int = 0,
         for text in legend.get_texts():
             text.set_fontproperties(small_font)
 
-    fig.tight_layout(pad=0.6)
+    fig.tight_layout(pad=0.8)
+    fig.canvas.draw()
+    renderer = fig.canvas.get_renderer()
+    categories = ax.get_yticklabels() if kind in ("hbar", "horizontal") else ax.get_xticklabels()
+    if kind in ("pie", "donut"):
+        categories = category_text
+    boxes = [label.get_window_extent(renderer) for label in categories if label.get_visible() and label.get_text()]
+    overlap = any(box.overlaps(other) for i, box in enumerate(boxes) for other in boxes[i + 1:])
+    xlow, xhigh = sorted(ax.get_xlim())
+    ylow, yhigh = sorted(ax.get_ylim())
+    # Tick Text objects outside view limits exist but matplotlib does not paint
+    # them. Only actual in-range labels participate in the canvas bounds gate.
+    xticks = [text for text in ax.get_xticklabels() if xlow <= text.get_position()[0] <= xhigh]
+    yticks = [text for text in ax.get_yticklabels() if ylow <= text.get_position()[1] <= yhigh]
+    text_artists = [*xticks, *yticks, *ax.texts, ax.xaxis.get_offset_text(), ax.yaxis.get_offset_text()]
+    if ax.get_legend() is not None:
+        text_artists.extend(ax.get_legend().get_texts())
+    text_boxes = [text.get_window_extent(renderer) for text in text_artists if text.get_visible() and text.get_text()]
+    outside = any(box.x0 < -0.5 or box.y0 < -0.5 or box.x1 > fig.bbox.width + 0.5 or box.y1 > fig.bbox.height + 0.5 for box in text_boxes)
+    if overlap or outside:
+        plt.close(fig)
+        return _fallback(req, number)
     buf = io.BytesIO()
-    fig.savefig(buf, format="png", transparent=True, bbox_inches="tight", pad_inches=0.05)
+    # Tight bounding boxes change the physical scale when the img fills a
+    # column. Preserve the exact requested canvas and 9pt+ final-size labels.
+    fig.savefig(buf, format="png", transparent=True)
     plt.close(fig)
     data = base64.b64encode(buf.getvalue()).decode("ascii")
     alt = req.title or f"{kind} chart"
     return (
         f'<figure class="chart"><img src="data:image/png;base64,{data}" '
+        f'style="width:{width:g}in;max-width:100%;height:auto" '
         f'alt="{alt}" />{_caption(req, number, kind)}</figure>'
     )

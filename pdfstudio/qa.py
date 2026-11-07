@@ -505,7 +505,7 @@ def analyze(
     # ---- credits ------------------------------------------------------
     all_text = " ".join((page.get_text() or "") for page in doc)
     has_credits = bool(re.search(r"\b(image credits|photo credits|credits)\b", all_text, re.I))
-    if image_entries and not has_credits:
+    if image_entries and not has_credits and expect.get('requires_credits', True):
         report["issues"].append(_issue(
             "missing_credits", "error",
             "Images are present but there is no credits block.",

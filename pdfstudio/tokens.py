@@ -54,8 +54,8 @@ class DesignSystem:
     letter_spacing: str = "-0.01em"
     body_size: str = "10.5pt"
     line_height: str = "1.55"
-    measure: str = "72ch"
-    margin: str = "20mm 18mm 22mm 18mm"
+    measure: str = "82ch"
+    margin: str = "16mm 14mm 18mm 14mm"
     cover_align: str = "left"          # left | center
     cover_style: str = "split"         # split | full | minimal | image | type
     toc_style: str = "rule"            # rule | dots | numbered
@@ -328,10 +328,35 @@ _register(DesignSystem(
     cover_style="type", toc_style="numbered", texture="none",
 ))
 
+_register(DesignSystem(
+    id="national",
+    label="National",
+    mood="Authoritative, civic, green-and-navy sovereign institution",
+    fonts=FontPair(
+        display="'Georgia', 'Times New Roman', serif",
+        body="'Segoe UI', 'Inter', 'Arial', sans-serif",
+        mono="'JetBrains Mono', Consolas, monospace",
+    ),
+    palette=Palette(
+        bg="#FFFFFF", ink="#0F2537", muted="#5A6B82",
+        accent="#1B5E20", accent_ink="#FFFFFF", accent2="#D4AF37",
+        rule="#D0DBE5", panel="#F4F7F6", panel_ink="#0F2537",
+        success="#1B5E20", warning="#B4690E", danger="#B71C1C",
+        cover_bg="#0F2537", cover_ink="#FFFFFF",
+    ),
+    radius="4px", rule_width="1.5px", heading_weight="700",
+    display_weight="800", letter_spacing="-0.015em",
+    body_size="10.2pt", line_height="1.55", measure="82ch",
+    margin="16mm 14mm 18mm 14mm",
+    cover_style="split", toc_style="rule", texture="none",
+))
+
 
 def get_theme(theme_id: str) -> DesignSystem:
-    """Return a design system by id, falling back to editorial."""
-    return THEMES.get(theme_id, THEMES["editorial"])
+    """Return declared tokens; reject misspelled explicit choices."""
+    if theme_id not in THEMES:
+        raise ValueError(f"Unknown theme {theme_id!r}. Supported: {', '.join(THEMES)}")
+    return THEMES[theme_id]
 
 
 def list_themes() -> List[Dict[str, str]]:

@@ -182,10 +182,13 @@ def parse_frontmatter(text: str) -> tuple[Dict[str, Any], str]:
     if yaml is not None:
         try:
             data = yaml.safe_load(raw) or {}
-            if isinstance(data, dict):
-                return data, body
-        except Exception:
-            pass
+        except Exception as exc:
+            raise ValueError(f'Invalid YAML frontmatter: {exc}') from exc
+        if not isinstance(data, dict):
+            raise ValueError('YAML frontmatter must be a mapping.')
+        return data, body
+    if any(_indent(line) >= 4 for line in raw.splitlines() if line.strip()):
+        raise ValueError('Nested design frontmatter requires PyYAML; it cannot be safely flattened.')
     return _mini_yaml(raw), body
 
 
@@ -230,6 +233,7 @@ class Document:
     chart_requests: List[ChartRequest] = field(default_factory=list)
     source_path: Optional[Path] = None
     warnings: List[str] = field(default_factory=list)
+    blocks: list = field(default_factory=list)
 
 
 # ---------------------------------------------------------------------------
@@ -666,11 +670,12 @@ def _add_heading_ids(html: str) -> tuple[str, List[TocEntry]]:
         if not plain:
             return match.group(0)
         # Markdown's toc extension already adds ids; drop them to avoid duplicates.
-        attrs = re.sub(r'\s+id="[^"]*"', "", attrs or "")
+        existing_id = re.search(r'''\bid=["']([^"']+)["']''', attrs)
+        attrs = re.sub(r'''\s+id=["'][^"']*["']''', "", attrs or "")
         if "no-toc" in attrs or "data-notoc" in attrs:
-            sid = slugify(plain)
+            sid = existing_id.group(1) if existing_id else slugify(plain)
             return f'<h{level}{attrs} id="{sid}">{text}</h{level}>'
-        base = slugify(plain)
+        base = existing_id.group(1) if existing_id else slugify(plain)
         count = used.get(base, 0)
         used[base] = count + 1
         sid = base if count == 0 else f"{base}-{count + 1}"
@@ -721,8 +726,9 @@ def load_document(path: str | Path) -> Document:
 
     if suffix == ".json":
         meta, body_text = _load_json(text)
+        is_html = 'html' in json.loads(text) and 'markdown' not in json.loads(text)
     elif suffix in (".html", ".htm"):
-        meta, _ = parse_frontmatter(text)
+        meta, body_text = parse_frontmatter(text)
         is_html = True
     else:
         meta, body_text = parse_frontmatter(text)
@@ -750,11 +756,10 @@ def load_document(path: str | Path) -> Document:
     body_html = _decorate_tables(body_html)
     body_html, toc = _add_heading_ids(body_html)
 
-    return Document(
-        meta=meta,
-        body_html=body_html,
-        toc=toc,
-        image_requests=image_requests,
-        chart_requests=chart_requests,
-        source_path=path,
+    doc = Document(
+        meta=meta, body_html=body_html, toc=toc,
+        image_requests=image_requests, chart_requests=chart_requests, source_path=path,
     )
+    from .blocks import parse_blocks
+    doc.blocks = list(parse_blocks(doc))
+    return doc

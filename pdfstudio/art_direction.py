@@ -262,7 +262,7 @@ THEME_DEFAULTS = {
     "academic": "scholarly-book", "brutalist": "industrial-machine",
     "minimal": "essential-minimal", "corporate": "institutional-clear",
     "warm-sage": "organic-human", "midnight": "technical-field",
-    "vibrant": "object-playful",
+    "vibrant": "object-playful", "national": "institutional-clear",
 }
 
 
@@ -271,30 +271,9 @@ def _tokens(text: str) -> Iterable[str]:
 
 
 def infer_direction(meta: dict, scenario_id: str, body_html: str, theme_id: str) -> ArtDirection:
-    explicit = str(meta.get("art_direction") or meta.get("direction") or "").strip()
-    if explicit in DIRECTIONS:
-        return DIRECTIONS[explicit]
-
-    plain = re.sub(r"<[^>]+>", " ", body_html)
-    corpus = " ".join(str(meta.get(k, "")) for k in (
-        "title", "subtitle", "summary", "client", "org", "tone", "industry", "audience"
-    )) + " " + plain[:12000]
-    corpus_cf = corpus.casefold()
-
-    scores: Dict[str, int] = {key: 0 for key in DIRECTIONS}
-    for key, direction in DIRECTIONS.items():
-        if scenario_id in direction.scenarios:
-            scores[key] += 2
-        if str(meta.get("tone", "")).casefold() == direction.tone:
-            scores[key] += 7
-        for keyword in direction.keywords:
-            if keyword in corpus_cf:
-                scores[key] += 5 if " " in keyword else 3
-
-    winner, score = max(scores.items(), key=lambda item: item[1])
-    if score < 3:
-        winner = THEME_DEFAULTS.get(theme_id, "editorial-contrast")
-    return DIRECTIONS[winner]
+    # Compatibility API; the engine resolves tokens separately from composition.
+    from .design import recommend_direction
+    return recommend_direction(meta, scenario_id, body_html, theme_id)[0]
 
 
 def apply_direction(base: DesignSystem, direction: ArtDirection) -> DesignSystem:

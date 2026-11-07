@@ -8,7 +8,7 @@
 html {
   margin: 0;
   padding: 0;
-  background: var(--bg);
+  background: transparent;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
   /* Chromium shrink-to-fit is the silent type killer: one element wider
@@ -21,7 +21,7 @@ body.doc {
   margin: 0;
   padding: 0;
   overflow: hidden;
-  background: var(--bg);
+  background: transparent;
   color: var(--ink);
   font-family: var(--font-body);
   font-size: var(--body-size);
@@ -46,29 +46,29 @@ h1, h2, h3, h4, h5, h6 {
   text-wrap: balance;
 }
 
-.content > h1 {
-  font-size: 25pt;
-  margin: 26pt 0 12pt;
-  padding-bottom: 10pt;
+.content h1 {
+  font-size: 24pt;
+  margin: 20pt 0 10pt;
+  padding-bottom: 7pt;
   border-bottom: var(--rule-width) solid var(--rule);
 }
 
-.content > h1:first-child { margin-top: 0; }
+.content h1:first-child { margin-top: 0; }
 
-.content > h2 {
-  font-size: 16.5pt;
-  margin: 24pt 0 9pt;
-  padding-top: 10pt;
+.content h2 {
+  font-size: 15.5pt;
+  margin: 18pt 0 7pt;
+  padding-top: 6pt;
   border-top: var(--rule-width) solid var(--rule);
 }
 
-.content > h3 {
-  font-size: 12.4pt;
-  margin: 17pt 0 5pt;
+.content h3 {
+  font-size: 12pt;
+  margin: 13pt 0 4pt;
   color: var(--ink);
 }
 
-.content > h4 {
+.content h4 {
   font-size: 10.4pt;
   margin: 12pt 0 4pt;
   text-transform: uppercase;
@@ -78,7 +78,7 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 700;
 }
 
-.content p { margin: 0 0 8pt; orphans: 3; widows: 3; max-width: var(--measure, 72ch); }
+.content p { margin: 0 0 8pt; orphans: 3; widows: 3; max-width: var(--measure, 82ch); }
 .content p:last-child { margin-bottom: 0; }
 
 .content strong { font-weight: 700; color: var(--ink); }
@@ -485,12 +485,12 @@ h1, h2, h3, h4, h5, h6 {
 
 .back-cover {
   break-before: page;
-  margin-top: 6mm;
-  min-height: 216mm;
+  margin-top: 4mm;
+  min-height: 200mm;
   background: var(--cover-bg);
   color: var(--cover-ink);
   border-radius: var(--radius);
-  padding: 22mm 20mm;
+  padding: 18mm 16mm;
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -545,10 +545,10 @@ h1, h2, h3, h4, h5, h6 {
 /* ---------- Section numbering ------------------------------------------- */
 
 body.numbered .content { counter-reset: section; }
-body.numbered .content > h2 {
+body.numbered .content h2 {
   counter-increment: section;
 }
-body.numbered .content > h2::before {
+body.numbered .content h2::before {
   content: counter(section);
   display: inline-block;
   font-family: var(--font-body);
@@ -565,7 +565,7 @@ body.numbered .content > h2::before {
 .cover-page {
   page: cover;
   width: var(--page-w);
-  height: 296.6mm;
+  height: var(--page-h);
   overflow: hidden;
   break-after: page;
 }
@@ -586,7 +586,7 @@ body.numbered .content > h2::before {
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 26mm 22mm 24mm;
+  padding: 18mm 16mm 18mm;
   width: 100%;
 }
 
@@ -706,10 +706,10 @@ body.numbered .content > h2::before {
 .cover--split:has(.cover__media) .cover__content { width: 60%; }
 .cover--split:has(.cover__media) .cover__title { font-size: 32pt; max-width: 92mm; }
 
-.cover--full .cover__content { justify-content: center; padding: 30mm; }
+.cover--full .cover__content { justify-content: center; padding: 22mm 18mm; }
 .cover--full .cover__title { font-size: 48pt; max-width: 160mm; }
 
-.cover--type .cover__content { justify-content: center; padding: 26mm; }
+.cover--type .cover__content { justify-content: center; padding: 20mm 16mm; }
 .cover--type .cover__title { font-size: 54pt; text-transform: uppercase; letter-spacing: -0.04em; }
 
 .cover--minimal { background: var(--bg); color: var(--ink); }
@@ -718,7 +718,7 @@ body.numbered .content > h2::before {
 .cover--minimal .cover__summary,
 .cover--minimal .cover__meta-value,
 .cover--minimal .cover__brand { color: var(--ink); }
-.cover--minimal .cover__content { justify-content: center; align-items: center; text-align: center; padding: 34mm; }
+.cover--minimal .cover__content { justify-content: center; align-items: center; text-align: center; padding: 24mm 18mm; }
 .cover--minimal .cover__title { max-width: 140mm; font-weight: var(--display-weight); }
 .cover--minimal .cover__rule { margin-left: auto; margin-right: auto; }
 .cover--minimal .cover__meta { justify-content: center; border-top: none; }

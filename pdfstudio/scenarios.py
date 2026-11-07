@@ -197,7 +197,9 @@ _register(Scenario(
 
 
 def get_scenario(scenario_id: str) -> Scenario:
-    return SCENARIOS.get(scenario_id, SCENARIOS["report"])
+    if scenario_id not in SCENARIOS:
+        raise ValueError(f"Unknown scenario {scenario_id!r}. Supported: {', '.join(SCENARIOS)}")
+    return SCENARIOS[scenario_id]
 
 
 def list_scenarios() -> List[Dict[str, object]]:

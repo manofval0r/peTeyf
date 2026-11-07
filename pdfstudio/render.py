@@ -22,7 +22,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 from jinja2 import Environment, FileSystemLoader, select_autoescape
 
-from .art_direction import ArtDirection, apply_direction, infer_direction
+from .art_direction import ArtDirection, DIRECTIONS
 from .charts import make_chart
 from .content import Document, TocEntry
 from .images import (
@@ -68,8 +68,11 @@ PAGE_SIZES_MM = {
 @dataclass
 class RenderOptions:
     output: Path
-    scenario: str = "report"
+    scenario: Optional[str] = None
     theme: Optional[str] = None
+    composition: Optional[str] = None
+    output_mode: Optional[str] = None
+    art_direction: Optional[str] = None
     page_size: Optional[str] = None
     landscape: Optional[bool] = None
     toc: Optional[bool] = None
@@ -98,6 +101,7 @@ class RenderResult:
     direction_id: str = ""
     direction_label: str = ""
     contrast_report: Dict[str, Any] = field(default_factory=dict)
+    design_manifest: Dict[str, Any] = field(default_factory=dict)
 
 
 # ---------------------------------------------------------------------------
@@ -210,6 +214,7 @@ def _page_rules(ds: DesignSystem, scenario: Scenario, page_w: float,
         f"@page {{",
         f"  size: {page_w}mm {page_h}mm;",
         f"  margin: {margin};",
+        f"  background: {ds.palette.bg};",
     ]
 
     header_on = bool(stamp and scenario.header and meta.get("header", True) is not False)
@@ -282,6 +287,7 @@ def _page_rules(ds: DesignSystem, scenario: Scenario, page_w: float,
         "@page cover {",
         f"  size: {page_w}mm {page_h}mm;",
         "  margin: 0;",
+        f"  background: {ds.palette.cover_bg or ds.palette.bg};",
         "  @top-left { content: none; }",
         "  @top-center { content: none; }",
         "  @top-right { content: none; }",
@@ -295,6 +301,14 @@ def _page_rules(ds: DesignSystem, scenario: Scenario, page_w: float,
         f":root {{ --page-w: {page_w}mm; --page-h: {page_h}mm; "
         f"--inner-w: {inner_w:.2f}mm; --inner-h: {inner_h:.2f}mm; }}"
     )
+    from .geometry import PageGeometry, page_field_css
+    from .compositions import _contrast
+    geometry = PageGeometry(page_w, page_h, _parse_margins(ds.margin))
+    for name, colour in (('bg', ds.palette.bg), ('panel', ds.palette.panel), ('accent', ds.palette.accent)):
+        lines.append(page_field_css('field-' + name, colour, geometry))
+        ink = '#FFFFFF' if _contrast('#FFFFFF', colour) >= _contrast('#000000', colour) else '#000000'
+        furniture = ' '.join('@' + box + ' { color: ' + ink + '; }' for box in ('top-left','top-center','top-right','bottom-left','bottom-center','bottom-right'))
+        lines.append('@page field-' + name + ' { ' + furniture + ' }')
     return "\n".join(lines)
 
 
@@ -302,15 +316,18 @@ def _css(ds: DesignSystem, scenario: Scenario, direction: ArtDirection,
          page_w: float, page_h: float, meta: Dict[str, Any],
          extra_css: str = "", stamp: bool = True) -> str:
     base, overrides, fonts, directions = _read_css()
+    from .compositions import _contrast
     tokens = ds.css_vars()
+    accent_ink = '#FFFFFF' if _contrast('#FFFFFF', ds.palette.accent) >= _contrast('#000000', ds.palette.accent) else '#000000'
+    tokens += f'\n--accent-field-ink: {accent_ink};'
     return "\n".join([
         ":root {", tokens, "}",
-        ":root {", direction.css_vars(), "}",
         _page_rules(ds, scenario, page_w, page_h, meta, stamp),
         fonts,
         base,
         overrides,
-        directions,
+        (ROOT / 'assets' / 'css' / 'components.css').read_text(encoding='utf-8'),
+        (ROOT / 'assets' / 'css' / 'compositions.css').read_text(encoding='utf-8'),
         extra_css or "",
     ])
 
@@ -485,7 +502,7 @@ def _wrap_chapters(body: str) -> str:
 def _cover_fragment(ds: DesignSystem, scenario: Scenario, meta: Dict[str, Any],
                     direction: ArtDirection, cover_image_uri: str, logo_uri: str,
                     body_classes: str) -> Optional[str]:
-    default_style = "none" if scenario.cover == "none" else direction.cover_style
+    default_style = "none" if scenario.cover == "none" else ds.cover_style
     style = str(meta.get("cover_style") or default_style or scenario.cover or "split")
     if style == "none" or meta.get("cover") is False:
         return None
@@ -512,6 +529,8 @@ def _cover_fragment(ds: DesignSystem, scenario: Scenario, meta: Dict[str, Any],
         confidential=meta.get("confidential", ""),
         cover_style=style,
         cover_image_uri=cover_image_uri,
+        cover_fit=meta.get('_cover_fit', 'contain'),
+        cover_focal=meta.get('_cover_focal', '50% 50%'),
         brand_mark=brand_mark,
         lang=meta.get("lang", "en"),
     )
@@ -527,7 +546,7 @@ def _body_fragment(ds: DesignSystem, scenario: Scenario, direction: ArtDirection
         scenario=scenario.id,
         direction=direction.id,
         body_classes=body_classes,
-        body_html=_wrap_chapters(body),
+        body_html=body if meta.get('_composed') else _wrap_chapters(body),
         credits_html=credits,
         toc_entries=toc_entries,
         toc_label=meta.get("toc_label", "Contents"),
@@ -735,22 +754,25 @@ def _finalize_pdf(raw_path: Path, out: Path, meta: Dict[str, Any],
 # ---------------------------------------------------------------------------
 
 def render(doc: Document, opts: RenderOptions) -> RenderResult:
-    scenario = get_scenario(opts.scenario)
+    opts.output = Path(opts.output).resolve()
+    from .design import resolve_design
+    scenario = get_scenario(opts.scenario or str(doc.meta.get('scenario') or 'report'))
     meta = _meta(doc)
-    meta.setdefault("scenario", scenario.id)
-    theme_id = opts.theme or str(doc.meta.get("theme") or scenario.default_theme)
-    base_ds = get_theme(theme_id)
-    direction = infer_direction(meta, scenario.id, doc.body_html, theme_id)
-    ds = apply_direction(base_ds, direction)
+    meta['scenario'] = scenario.id
+    decision = resolve_design(doc, opts)
+    direction = DIRECTIONS[decision.direction_id]
+    ds = decision.tokens
+    meta['composition'] = decision.family_id
+    meta['output_mode'] = decision.output_mode
 
     page = opts.page_size or str(doc.meta.get("page_size") or scenario.page)
     landscape = opts.landscape if opts.landscape is not None else bool(
         doc.meta.get("landscape", scenario.landscape)
     )
-    page_w, page_h = _page_dims(page, landscape)
-    if meta.get("page_size"):
-        page = str(meta["page_size"])
-        page_w, page_h = _page_dims(page, landscape)
+    from .geometry import resolve_geometry
+    geometry = resolve_geometry(page, landscape, decision.output_mode, (meta.get('design') or {}).get('safe_mm'))
+    page_w, page_h = geometry.width_mm, geometry.height_mm
+    ds.margin = geometry.margin_css
 
     include_toc = opts.toc if opts.toc is not None else bool(
         meta.get("toc", scenario.toc)
@@ -766,15 +788,33 @@ def render(doc: Document, opts: RenderOptions) -> RenderResult:
     raw_pdf = work / "document.pdf"
     first_pdf = work / "document-pass1.pdf"
 
-    # Cover first, so body searches cannot reuse the cover photograph.
-    cover_asset = _resolve_cover(meta, doc, opts)
-    cover_image = cover_asset.data_uri if cover_asset.ok else ""
-    avoid: set[str] = set(_asset_identity(cover_asset)) if cover_asset.ok else set()
-
-    body, credits, _resolved, _used = _resolve_assets(doc, opts, ds, avoid=avoid)
+    from dataclasses import replace
+    from .blocks import parse_blocks
+    from .asset_render import collect_assets, render_assets, replace_slots
+    from .compositions import plan_sections, render_sections, apply_asset_accent, adapt_composition
+    assets = collect_assets(doc, meta, opts)
+    decision = apply_asset_accent(decision, assets.layouts)
+    ds = decision.tokens
+    ds.margin = geometry.margin_css
+    source_blocks = tuple(doc.blocks) if doc.blocks else parse_blocks(doc)
+    decision = adapt_composition(decision, source_blocks, assets.layouts)
+    meta['composition'] = decision.family_id
+    section_layouts = plan_sections(source_blocks, decision, assets.layouts, geometry, meta)
+    render_assets(doc, assets, decision, geometry, section_layouts)
+    resolved_blocks = tuple(replace(b, html=replace_slots(b.html, assets.replacements)) for b in source_blocks)
+    catalogue_credits = bool(section_layouts and section_layouts[-1].family_id == 'object-catalogue' and section_layouts[-1].columns == 2)
+    body = render_sections(resolved_blocks, section_layouts, assets.credits if catalogue_credits else '')
+    meta['_composed'] = True
+    cover_asset = assets.images.get('cover', ResolvedImage())
+    cover_image = cover_asset.data_uri if cover_asset.ok else ''
+    if cover_image and 'cover_style' not in meta:
+        meta['cover_style'] = 'object' if decision.family_id == 'object-catalogue' else 'split'
+    if 'cover' in assets.layouts:
+        a = assets.layouts['cover']
+        meta['_cover_fit'] = 'contain' if a.role in ('object','logo','diagram') else a.fit
+        meta['_cover_focal'] = f'{a.focal[0]*100:g}% {a.focal[1]*100:g}%'
+    credits = '' if catalogue_credits else assets.credits
     warnings: List[str] = list(doc.warnings)
-    if cover_asset.ok:
-        credits = credits_html([cover_asset] + _resolved)
     logo = _resolve_logo(meta, doc)
 
     base_classes = []
@@ -864,6 +904,7 @@ def render(doc: Document, opts: RenderOptions) -> RenderResult:
             "margins_mm": margins,
             "cover_pages": 1 if cover_html else 0,
             "toc_pages": 1 if include_toc and toc_entries else 0,
+            "requires_credits": any(img.ok for img in assets.images.values()),
         }
         report = analyze(
             opts.output,
@@ -876,6 +917,32 @@ def render(doc: Document, opts: RenderOptions) -> RenderResult:
     except Exception as exc:
         warnings.append(f"QA failed: {exc}")
 
+    import json
+    from .design_qa import build_design_manifest, map_rendered_sections, check_design, text_units
+    manifest = build_design_manifest(decision, geometry, section_layouts, assets.layouts, bool(opts.extra_css))
+    manifest['cover_pages'] = 1 if cover_html else 0
+    skip_pages = set(range(1, manifest['cover_pages'] + 1))
+    if include_toc and toc_entries:
+        with fitz.open(opts.output) as pdf:
+            toc_index = manifest['cover_pages']
+            links = pdf[toc_index].get_links() if toc_index < len(pdf) else []
+            destinations = [l['page'] + 1 for l in links if l.get('kind') == 1 and l.get('page', -1) > toc_index]
+            first_body = min(destinations) if destinations else toc_index + 2
+            skip_pages.update(range(toc_index + 1, first_body))
+    manifest['skip_pages'] = sorted(skip_pages)
+    page_mapping = map_rendered_sections(opts.output, resolved_blocks, section_layouts, skip_pages, geometry.safe_mm)
+    for section in manifest['sections']:
+        section['pages'] = list(page_mapping.get(section['section_id'], ()))
+    manifest['expected_text'] = [unit for b in resolved_blocks for unit in text_units(b.html)]
+    manifest['requested'] = {k: doc.meta.get(k) for k in ('theme','composition','art_direction','output_mode') if k in doc.meta}
+    manifest['requested_cli'] = {k: getattr(opts,k) for k in ('theme','composition','art_direction','output_mode') if getattr(opts,k)}
+    manifest_path = opts.output.with_suffix('.design.json')
+    manifest_path.write_text(json.dumps(manifest, indent=2, ensure_ascii=False), encoding='utf-8')
+    design_report = check_design(opts.output, manifest)
+    report['design'] = design_report
+    report.setdefault('issues', []).extend(design_report['issues'])
+    report.setdefault('gates', {})['design_layout'] = design_report['passed']
+
     return RenderResult(
         pdf_path=opts.output,
         html_path=html_path,
@@ -887,6 +954,7 @@ def render(doc: Document, opts: RenderOptions) -> RenderResult:
         direction_id=direction.id,
         direction_label=direction.label,
         contrast_report=contrast_report,
+        design_manifest=manifest,
     )
 
 

@@ -67,6 +67,8 @@ class ResolvedImage:
     error: str = ""
     provider: str = ""
     source_title: str = ""
+    has_alpha: bool = False
+    media_type: str = "image/jpeg"
 
 
 # ---------------------------------------------------------------------------
@@ -82,25 +84,30 @@ def _to_data_uri(raw: bytes, mime: str = "image/jpeg") -> str:
 
 
 def _process_bytes(raw: bytes) -> tuple[bytes, int, int, str]:
-    """Validate, resize, and re-encode an image. Returns (bytes, w, h, dominant)."""
+    """Validate and resize, preserving alpha as PNG; opaque photos remain JPEG.
+
+    The four-value return is retained for existing callers. ``dominant`` is a
+    legacy average, not a reviewed accent (see asset_layout.suggest_asset_accent).
+    """
     if Image is None:
         return raw, 0, 0, ""
     img = Image.open(io.BytesIO(raw))
     img.load()
-    if img.mode in ("RGBA", "LA", "P"):
-        rgba = img.convert("RGBA")
-        background = Image.new("RGB", rgba.size, (255, 255, 255))
-        background.paste(rgba, mask=rgba.split()[-1])
-        img = background
-    else:
-        img = img.convert("RGB")
+    has_alpha = "A" in img.getbands() or "transparency" in img.info
+    img = img.convert("RGBA" if has_alpha else "RGB")
     if img.width > MAX_WIDTH:
         ratio = MAX_WIDTH / img.width
         img = img.resize((MAX_WIDTH, max(1, int(img.height * ratio))), Image.LANCZOS)
-    small = img.resize((1, 1), Image.LANCZOS)
-    dominant = "#%02X%02X%02X" % small.getpixel((0, 0))
+    sample = img
+    if has_alpha:
+        sample = Image.new("RGB", img.size, (255, 255, 255))
+        sample.paste(img, mask=img.getchannel("A"))
+    dominant = "#%02X%02X%02X" % sample.resize((1, 1), Image.LANCZOS).getpixel((0, 0))
     out = io.BytesIO()
-    img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
+    if has_alpha:
+        img.save(out, format="PNG", optimize=True)
+    else:
+        img.save(out, format="JPEG", quality=JPEG_QUALITY, optimize=True)
     return out.getvalue(), img.width, img.height, dominant
 
 
@@ -117,8 +124,14 @@ def _from_bytes(
 ) -> ResolvedImage:
     try:
         data, w, h, dominant = _process_bytes(raw)
+        has_alpha = False
+        media_type = "image/jpeg"
+        if Image is not None:
+            with Image.open(io.BytesIO(data)) as encoded:
+                has_alpha = "A" in encoded.getbands() or "transparency" in encoded.info
+                media_type = Image.MIME.get(encoded.format, media_type)
         return ResolvedImage(
-            data_uri=_to_data_uri(data),
+            data_uri=_to_data_uri(data, media_type),
             caption=caption,
             credit=credit,
             license=license_name,
@@ -131,6 +144,8 @@ def _from_bytes(
             ok=True,
             provider=provider,
             source_title=source_title,
+            has_alpha=has_alpha,
+            media_type=media_type,
         )
     except Exception as exc:  # pragma: no cover
         return ResolvedImage(error=f"image decode failed: {exc}", provider=provider)
@@ -256,7 +271,13 @@ def _candidate_queries(query: str) -> List[str]:
     return ordered
 
 
-def _is_usable(item: Dict[str, Any]) -> bool:
+def _is_usable(item: Dict[str, Any], *, role: str = "photo") -> bool:
+    if role not in ("photo", "object", "diagram", "logo"):
+        raise ValueError("image role must be photo, object, diagram or logo")
+    if role != "photo":
+        # Reviewed illustrations/cutouts are not constrained by photo ratios,
+        # minimum photo dimensions or photo-only title exclusions.
+        return True
     title = (item.get("title") or "").lower()
     if any(hint in title for hint in BAD_TITLE_HINTS):
         return False
@@ -276,9 +297,17 @@ def _is_usable(item: Dict[str, Any]) -> bool:
 
 def _terms(text: str) -> set[str]:
     return {
-        word for word in re.findall(r"[a-z0-9]+", str(text or "").casefold())
-        if len(word) > 2 and word not in STOPWORDS
+        word for word in re.findall(r"[^\W_]+", str(text or "").casefold())
+        if word not in STOPWORDS and word not in {"diagram", "logo", "icon", "illustration"}
     }
+
+
+def _subject_matches(query: str, item: Dict[str, Any]) -> int:
+    title_terms = _terms(item.get("title") or "")
+    return sum(
+        term in title_terms or bool(RELATED_TERMS.get(term, set()) & title_terms)
+        for term in _terms(query)
+    )
 
 
 def _relevance_score(query: str, item: Dict[str, Any]) -> float:
@@ -289,11 +318,7 @@ def _relevance_score(query: str, item: Dict[str, Any]) -> float:
     the old scorer rewarded it for being large.
     """
     terms = _terms(query)
-    title_terms = _terms(item.get("title") or "")
-    matched = 0
-    for term in terms:
-        if term in title_terms or (RELATED_TERMS.get(term, set()) & title_terms):
-            matched += 1
+    matched = _subject_matches(query, item)
     missed = max(0, len(terms) - matched)
 
     width = float(item.get("width") or 0)
@@ -315,7 +340,7 @@ def _relevance_score(query: str, item: Dict[str, Any]) -> float:
     return score
 
 
-def search_candidates(query: str, count: int = 12) -> List[Dict[str, Any]]:
+def search_candidates(query: str, count: int = 12, *, role: str = "photo") -> List[Dict[str, Any]]:
     """Merged, de-duplicated, relevance-sorted candidates from all providers."""
     merged: Dict[str, Dict[str, Any]] = {}
     for provider in (search_wikimedia, search_wikipedia, search_openverse):
@@ -326,7 +351,7 @@ def search_candidates(query: str, count: int = 12) -> List[Dict[str, Any]]:
             current = merged.get(key)
             if current is None or int(item.get("width") or 0) > int(current.get("width") or 0):
                 merged[key] = item
-    items = [item for item in merged.values() if _is_usable(item)]
+    items = [item for item in merged.values() if _is_usable(item, role=role)]
     items.sort(key=lambda item: _relevance_score(query, item), reverse=True)
     return items
 
@@ -541,13 +566,15 @@ def _credit_for(item: Dict[str, Any]) -> str:
 
 
 def resolve_search(query: str, caption: str = "", count: int = 8,
-                   avoid: Optional[set[str]] = None) -> ResolvedImage:
+                   avoid: Optional[set[str]] = None, *, role: str = "photo") -> ResolvedImage:
     """Find a freely-licensed image for a query, cache it, and embed it.
 
     ``avoid`` is a set of source titles and URLs already used in the document.
     It prevents the same photograph appearing twice under two different
     queries, which is the most common image failure in generated PDFs.
     """
+    if role not in ("photo", "object", "diagram", "logo"):
+        raise ValueError("image role must be photo, object, diagram or logo")
     query = (query or "").strip()
     if not query:
         return ResolvedImage(error="empty image query")
@@ -557,7 +584,7 @@ def resolve_search(query: str, caption: str = "", count: int = 8,
         filename = query.split(":", 1)[1].strip()
         if filename.casefold() in avoid:
             return ResolvedImage(error=f"Commons file already used: {filename}")
-        key = _cache_key(f"commons-v1::{filename.casefold()}")
+        key = _cache_key(f"commons-v2::{filename.casefold()}")
         cached = _cache_read(key)
         if cached is not None:
             if caption:
@@ -582,7 +609,7 @@ def resolve_search(query: str, caption: str = "", count: int = 8,
         return ResolvedImage(error=f"Commons file not found: {filename}")
 
     avoid_key = "|".join(sorted(avoid))
-    key = _cache_key(f"search-v3::{query.casefold()}::{avoid_key}")
+    key = _cache_key(f"search-v4::{role}::{query.casefold()}::{avoid_key}")
     cached = _cache_read(key)
     if cached is not None and cached.ok:
         identity = {str(cached.source_title or "").casefold(),
@@ -596,7 +623,12 @@ def resolve_search(query: str, caption: str = "", count: int = 8,
     tried: List[str] = []
     for candidate in _candidate_queries(query):
         tried.append(candidate)
-        for item in search_candidates(candidate, count=count):
+        for item in search_candidates(candidate, count=count, role=role):
+            # Ranking alone must never admit a beautiful but unrelated asset.
+            # Match the original required subject, not only a simplified query.
+            if not _is_usable(item, role=role) or _subject_matches(query, item) == 0:
+                last_error = "no required subject matched"
+                continue
             title = str(item.get("title") or "").casefold()
             source = str(item.get("source_url") or "").casefold()
             if title in avoid or source in avoid:
@@ -642,7 +674,7 @@ def resolve_file(path: str, caption: str = "") -> ResolvedImage:
 
 
 def resolve_url(url: str, caption: str = "") -> ResolvedImage:
-    key = _cache_key(f"url::{url}")
+    key = _cache_key(f"url-v2::{url}")
     cached = _cache_read(key)
     if cached is not None:
         return cached
@@ -721,14 +753,9 @@ def _esc(value: str) -> str:
 def figure_html(img: ResolvedImage, alt: str = "", number: int = 0) -> str:
     alt_text = _esc(alt or img.caption or "Image")
     if not img.ok:
-        label = _esc(alt or img.error or "Image")
-        return (
-            f'<figure class="figure figure--placeholder">'
-            f'<div class="figure__placeholder"><span>{label}</span></div>'
-            f'<figcaption><span class="figure__caption">{label}</span>'
-            f'<span class="figure__credit">Image unavailable</span></figcaption>'
-            f"</figure>"
-        )
+        # Keep the diagnostic on ResolvedImage for renderer warnings, not on a
+        # decorative publishable placeholder. Families use a text-led fallback.
+        return ""
     cap = _esc(img.caption or alt)
     credit = _esc(img.credit or "")
     if img.source_url and credit:

@@ -1,12 +1,12 @@
 <section class="cover-page" aria-label="Cover">
 <div class="cover cover--{{ cover_style }}">
   {% if cover_style == 'image' and cover_image_uri %}
-  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" /></div>
   <div class="cover__scrim"></div>
   {% elif cover_style == 'split' and cover_image_uri %}
-  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  <div class="cover__media"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" /></div>
   {% elif cover_style == 'object' and cover_image_uri %}
-  <div class="cover__object"><img src="{{ cover_image_uri }}" alt="{{ title }}" /></div>
+  <div class="cover__object"><img src="{{ cover_image_uri }}" alt="{{ title }}" style="object-fit:{{ cover_fit }};object-position:{{ cover_focal }}" /></div>
   {% endif %}
 
   <div class="cover__content">
